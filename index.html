@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeKPI.info - Kennzahlenmanagement in Zoll und Exportkontrolle</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0c1017;
+  --bg-secondary: #12161f;
+  --bg-card: #171c28;
+  --bg-card-hover: #1d2435;
+  --bg-sidebar: #0a0e16;
+  --border: #222d3f;
+  --accent: #4a7ccc;
+  --accent-light: #7da8e0;
+  --accent-glow: rgba(74, 124, 204, 0.1);
+  --accent-green: #3a9e7e;
+  --accent-yellow: #c89540;
+  --accent-red: #c25550;
+  --text-primary: #e8ecf1;
+  --text-secondary: #8d99ab;
+  --text-muted: #576375;
+  --sidebar-width: 280px;
+  --gold: #b89a5a;
+  --gold-glow: rgba(184, 154, 90, 0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+body.locked .sidebar, body.locked .main, body.locked .mobile-toggle { visibility: hidden; }
+
+/* ── Password Gate ── */
+.password-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg-primary);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+}
+.password-overlay.hidden { display: none; }
+.pw-box {
+  text-align: center; max-width: 420px; padding: 40px;
+}
+.pw-box img { width: 220px; margin-bottom: 24px; filter: drop-shadow(0 4px 20px rgba(74,124,204,0.15)); }
+.pw-title {
+  font-size: 28px; font-weight: 800; margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--gold), var(--accent-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.pw-subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+.pw-input {
+  width: 100%; padding: 14px 18px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary); font-size: 15px; letter-spacing: 2px;
+  outline: none; margin-bottom: 14px; font-family: inherit;
+}
+.pw-input:focus { border-color: var(--accent); }
+.pw-btn {
+  width: 100%; padding: 14px; border-radius: 10px; border: none;
+  background: var(--accent); color: #fff; font-size: 15px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background .2s;
+}
+.pw-btn:hover { background: var(--accent-light); }
+.pw-error { color: var(--accent-red); font-size: 13px; font-weight: 600; margin-top: 12px; min-height: 20px; }
+.pw-hint { color: var(--text-muted); font-size: 12px; margin-top: 18px; }
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; left: 0; top: 0;
+  width: var(--sidebar-width); height: 100vh;
+  background: var(--bg-sidebar); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 100;
+}
+.sidebar-logo {
+  padding: 24px 24px 16px; text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.lang-switch { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.lang-btn {
+  padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-secondary); font-size: 12px;
+  font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s;
+}
+.lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sidebar-logo img { width: 170px; margin-bottom: 8px; }
+.sidebar-logo .subtitle {
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 500;
+}
+.sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+.nav-label {
+  padding: 8px 24px; font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-muted); font-weight: 600;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 24px; cursor: pointer; color: var(--text-secondary);
+  font-size: 14px; font-weight: 500; transition: all .2s; border-left: 3px solid transparent;
+}
+.nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.nav-item.active { color: var(--accent-light); border-left-color: var(--accent); background: var(--accent-glow); }
+.nav-icon { font-size: 18px; width: 24px; text-align: center; }
+.sidebar-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-muted); text-align: center;
+}
+
+/* ── Main Content ── */
+.main { margin-left: var(--sidebar-width); min-height: 100vh; }
+.page { display: none; padding: 40px 48px; max-width: 1200px; }
+.page.active { display: block; }
+
+/* ── Hero ── */
+.hero {
+  text-align: center; padding: 60px 0 40px; position: relative;
+  background: radial-gradient(ellipse at 50% 30%, rgba(184,154,90,0.04) 0%, rgba(74,124,204,0.03) 40%, transparent 70%);
+}
+.hero img { width: 280px; margin-bottom: 24px; filter: drop-shadow(0 4px 20px rgba(74,124,204,0.15)); }
+.hero-badge {
+  display: inline-block; padding: 6px 18px; border-radius: 20px;
+  background: var(--gold-glow); border: 1px solid rgba(184,154,90,0.2);
+  color: var(--gold); font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 20px;
+}
+.hero h1 { font-size: 42px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+.hero p { color: var(--text-secondary); font-size: 16px; max-width: 700px; margin: 0 auto; line-height: 1.8; }
+
+/* ── Quote ── */
+.quote-block {
+  border-left: 4px solid var(--gold); padding: 28px 32px;
+  background: rgba(184,154,90,0.05); border-radius: 0 14px 14px 0;
+  margin: 40px 0; position: relative;
+}
+.quote-block p { font-size: 16px; font-style: italic; line-height: 1.8; color: var(--text-primary); }
+.quote-author { margin-top: 14px; color: var(--gold); font-size: 13px; font-weight: 600; }
+
+/* ── Dashboard Preview ── */
+.dashboard-preview { margin: 40px 0; }
+.dashboard-preview h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.dashboard-preview .sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 16px; }
+.reset-btn {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-secondary); font-size: 12px;
+  cursor: pointer; font-family: inherit; margin-bottom: 16px; transition: all .2s;
+}
+.reset-btn:hover { border-color: var(--accent-red); color: var(--accent-red); }
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.dash-empty { color: var(--text-muted); font-size: 14px; padding: 24px; text-align: center; }
+
+/* ── Pillars ── */
+.pillars { margin: 50px 0; }
+.pillars h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.pillars .intro { color: var(--text-secondary); font-size: 15px; margin-bottom: 28px; max-width: 700px; }
+.pillar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.pillar-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 28px; transition: all .3s; cursor: default;
+}
+.pillar-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.pillar-num { font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.pillar-icon { font-size: 28px; margin-bottom: 10px; }
+.pillar-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.pillar-card p { color: var(--text-secondary); font-size: 13px; line-height: 1.7; }
+
+/* ── Why KPIs ── */
+.why-section { margin: 50px 0; }
+.why-section h2 { font-size: 28px; font-weight: 700; margin-bottom: 24px; }
+.why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.why-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 28px; transition: all .3s;
+}
+.why-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.why-card .icon { font-size: 28px; margin-bottom: 12px; }
+.why-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.why-card p { color: var(--text-secondary); font-size: 13px; line-height: 1.7; }
+
+/* ── KPI Page ── */
+.perspective-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+.perspective-tab {
+  padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-secondary); font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s;
+}
+.perspective-tab:hover { border-color: var(--accent); color: var(--text-primary); }
+.perspective-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  margin-bottom: 16px; overflow: hidden; transition: border-color .2s;
+}
+.kpi-card:hover { border-color: var(--accent); }
+.kpi-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px; cursor: pointer;
+}
+.kpi-header-left { flex: 1; }
+.kpi-cat { font-size: 11px; color: var(--accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.kpi-name { font-size: 16px; font-weight: 700; margin-top: 4px; }
+.kpi-toggle {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-secondary); font-size: 12px;
+  cursor: pointer; font-family: inherit; white-space: nowrap; transition: all .2s;
+}
+.kpi-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.kpi-body { display: none; padding: 0 24px 24px; }
+.kpi-body.open { display: block; }
+.kpi-desc { color: var(--text-secondary); font-size: 14px; margin-bottom: 18px; line-height: 1.7; }
+.kpi-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; margin-bottom: 18px;
+}
+.kpi-meta-item { background: var(--bg-secondary); border-radius: 8px; padding: 12px 14px; }
+.kpi-meta-label { font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.kpi-meta-value { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+.kpi-formula {
+  background: rgba(74,124,204,0.08); border: 1px solid rgba(74,124,204,0.15);
+  border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+  font-family: 'Courier New', monospace; font-size: 14px; color: var(--accent-light);
+}
+.kpi-formula-label { font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; font-family: 'Inter', sans-serif; }
+.calc-inputs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.calc-input-group { flex: 1; min-width: 180px; }
+.calc-input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+.calc-input {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg-secondary);
+  color: var(--text-primary); font-size: 14px; font-family: inherit; outline: none;
+}
+.calc-input:focus { border-color: var(--accent); }
+.calc-btn {
+  padding: 10px 24px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; font-size: 14px;
+  font-weight: 600; cursor: pointer; font-family: inherit; transition: background .2s;
+}
+.calc-btn:hover { background: var(--accent-light); }
+.kpi-result { margin-top: 18px; display: none; }
+.kpi-result.show { display: block; }
+.result-value { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
+.result-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+}
+.badge-green { background: rgba(58,158,126,0.15); color: var(--accent-green); }
+.badge-yellow { background: rgba(200,149,64,0.15); color: var(--accent-yellow); }
+.badge-red { background: rgba(194,85,80,0.15); color: var(--accent-red); }
+.measures-box {
+  margin-top: 16px; border-radius: 10px; padding: 16px 18px;
+}
+.measures-box.green { background: rgba(58,158,126,0.06); border: 1px solid rgba(58,158,126,0.15); }
+.measures-box.yellow { background: rgba(200,149,64,0.06); border: 1px solid rgba(200,149,64,0.15); }
+.measures-box.red { background: rgba(194,85,80,0.06); border: 1px solid rgba(194,85,80,0.15); }
+.measures-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.measures-box ul { list-style: none; padding: 0; }
+.measures-box li { font-size: 13px; color: var(--text-secondary); padding: 4px 0; padding-left: 16px; position: relative; line-height: 1.6; }
+.measures-box li::before { content: ''; position: absolute; left: 0; top: 12px; width: 6px; height: 6px; border-radius: 50%; }
+.measures-box.green li::before { background: var(--accent-green); }
+.measures-box.yellow li::before { background: var(--accent-yellow); }
+.measures-box.red li::before { background: var(--accent-red); }
+
+/* ── Dashboard Page ── */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.summary-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px; text-align: center;
+}
+.summary-card .num { font-size: 36px; font-weight: 800; }
+.summary-card .lbl { font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+.dash-tile {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; transition: all .3s; cursor: pointer;
+}
+.dash-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.dash-tile-cat { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.dash-tile-name { font-size: 14px; font-weight: 700; margin-top: 2px; margin-bottom: 10px; }
+.dash-tile-value { font-size: 28px; font-weight: 800; }
+.dash-tile-delta { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.dash-tile-prev { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.dash-tile-time { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+.dash-tile-measures { display: none; margin-top: 12px; }
+.dash-tile-measures.open { display: block; }
+
+/* ── Authors ── */
+.authors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-top: 28px; }
+.author-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 32px; text-align: center; transition: all .3s;
+}
+.author-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.author-avatar {
+  width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 18px;
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; color: #fff;
+}
+.author-card h3 { font-size: 20px; font-weight: 700; }
+.author-card .role { color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 4px; }
+.author-card .bio { color: var(--text-secondary); font-size: 13px; margin-top: 12px; line-height: 1.7; }
+.author-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
+.author-tag {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: var(--accent-glow); border: 1px solid rgba(74,124,204,0.2); color: var(--accent-light);
+}
+.author-email {
+  display: inline-block; margin-top: 14px; padding: 8px 20px; border-radius: 8px;
+  background: var(--accent); color: #fff; text-decoration: none; font-size: 13px;
+  font-weight: 600; transition: background .2s;
+}
+.author-email:hover { background: var(--accent-light); }
+.author-linkedin {
+  display: inline-block; margin-top: 10px; padding: 8px 20px; border-radius: 8px;
+  background: #0a66c2; color: #fff; text-decoration: none; font-size: 13px;
+  font-weight: 600; transition: background .2s;
+}
+.author-linkedin:hover { background: #004182; }
+.author-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+
+/* ── Contact ── */
+.contact-cta {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(74,124,204,0.08) 100%);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 48px; text-align: center; margin-top: 28px;
+}
+.contact-cta h2 { font-size: 28px; font-weight: 700; margin-bottom: 14px; }
+.contact-cta p { color: var(--text-secondary); font-size: 15px; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; }
+.contact-btn {
+  display: inline-block; padding: 14px 32px; border-radius: 10px;
+  background: var(--accent); color: #fff; text-decoration: none;
+  font-size: 15px; font-weight: 600; transition: background .2s;
+}
+.contact-btn:hover { background: var(--accent-light); }
+
+/* ── Mobile ── */
+.mobile-toggle {
+  display: none; position: fixed; top: 14px; left: 14px; z-index: 150;
+  width: 52px; height: 52px; border-radius: 12px; border: 1px solid var(--accent);
+  background: var(--bg-card); cursor: pointer;
+  flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  box-shadow: 0 2px 12px rgba(74,124,204,0.2);
+}
+.mobile-toggle span {
+  display: block; width: 24px; height: 3px; background: var(--accent-light);
+  border-radius: 2px; transition: all .3s;
+}
+.mobile-toggle:active span { background: var(--gold); }
+/* ── Help Hints ── */
+.calc-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-style: italic; line-height: 1.4; }
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); transition: transform .3s; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .page { padding: 80px 20px 40px; }
+  .mobile-toggle { display: flex; }
+  .hero h1 { font-size: 28px; }
+  .pillar-grid, .why-grid, .authors-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .perspective-tabs { flex-direction: column; }
+}
+.page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.page-subtitle { color: var(--text-secondary); font-size: 15px; margin-bottom: 28px; }
+</style>
+</head>
+<body class="locked">
+
+<!-- Password Overlay -->
+<div class="password-overlay" id="passwordOverlay">
+  <div class="pw-box">
+    <img src="logo.svg" alt="TradeKPI">
+    <div class="pw-title">TradeKPI.info</div>
+    <div class="pw-subtitle" data-i18n="pw_subtitle">Passwort erforderlich f&uuml;r Zugriff auf das KPI-System</div>
+    <input type="text" class="pw-input" id="pwUser" data-i18n-placeholder="pw_user_placeholder" placeholder="Benutzername" style="letter-spacing:normal;margin-bottom:10px">
+    <input type="password" class="pw-input" id="pwInput" data-i18n-placeholder="pw_placeholder" placeholder="Passwort eingeben">
+    <button class="pw-btn" onclick="checkPassword()" data-i18n="pw_btn">Zugang</button>
+    <div class="pw-error" id="pwError"></div>
+    <div class="pw-hint" data-i18n="pw_hint">Hinweis: Benutzername und Passwort erforderlich</div>
+  </div>
+</div>
+
+<!-- Mobile Toggle -->
+<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="lang-switch">
+      <button class="lang-btn active" onclick="setLanguage('de')">DE</button>
+      <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+    </div>
+    <img src="logo.svg" alt="TradeKPI">
+    <div class="subtitle">KPI Framework</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-label" data-i18n="nav_main">Haupt</div>
+    <div class="nav-item active" onclick="showPage('home')"><span class="nav-icon">&#127968;</span><span data-i18n="nav_home">Startseite</span></div>
+    <div class="nav-item" onclick="showPage('kpis')"><span class="nav-icon">&#128202;</span><span data-i18n="nav_kpis">KPI Kalkulator</span></div>
+    <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">&#128200;</span><span data-i18n="nav_dashboard">Dashboard</span></div>
+    <div class="nav-label" data-i18n="nav_more">Mehr</div>
+    <div class="nav-item" onclick="showPage('authors')"><span class="nav-icon">&#10024;</span><span data-i18n="nav_authors">Die Ideengeber</span></div>
+    <div class="nav-item" onclick="showPage('contact')"><span class="nav-icon">&#9993;</span><span data-i18n="nav_contact">Kontakt</span></div>
+  </div>
+  <div class="sidebar-footer">Powered by TradeKPI.info</div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <img src="logo.svg" alt="TradeKPI">
+      <div class="hero-badge" data-i18n="hero_badge">Zoll- und Exportkontrolle</div>
+      <h1 data-i18n="hero_title">Kennzahlen-Management mit Wirkung</h1>
+      <p data-i18n="hero_text">Das TradeKPI-Framework liefert 31 praxiserprobte Indikatoren aus 5 Perspektiven, um Zoll- und Exportkontrollprozesse messbar, steuerbar und auditfest zu machen. Entwickelt als Begleitprodukt zum Fachbuch von Lars Gempp & Mladen Lisica.</p>
+    </div>
+
+    <div class="quote-block">
+      <p data-i18n="quote_text">&laquo;Zoll- und Exportkontrolle ohne Kennzahlen ist wie Navigation ohne Kompass &ndash; wer nicht misst, kann nicht steuern, und wer nicht steuert, riskiert Compliance und Wettbewerbsf&auml;higkeit.&raquo;</p>
+      <div class="quote-author">Lars Gempp &amp; Mladen Lisica</div>
+    </div>
+
+    <div class="dashboard-preview">
+      <h2 data-i18n="dash_preview_title">Aktuelle Messwerte</h2>
+      <div class="sub" data-i18n="dash_preview_sub">Ihre zuletzt berechneten KPI-Ergebnisse</div>
+      <button class="reset-btn" onclick="resetDashboard()" data-i18n="dash_reset">Zur&uuml;cksetzen</button>
+      <div class="dash-grid" id="dashboardContainer"></div>
+    </div>
+
+    <div class="pillars">
+      <h2 data-i18n="pillars_title">Die 5 S&auml;ulen</h2>
+      <p class="intro" data-i18n="pillars_intro">Das Framework gliedert 31 Kennzahlen in f&uuml;nf strategische Perspektiven &ndash; von der organisatorischen Reife &uuml;ber operative Exzellenz bis zum finanziellen Wertbeitrag.</p>
+      <div class="pillar-grid" id="pillarGrid"></div>
+    </div>
+
+    <div class="why-section">
+      <h2 data-i18n="why_title">Warum KPI-Reporting?</h2>
+      <div class="why-grid" id="whyGrid"></div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="page" id="page-kpis">
+    <h1 class="page-title" data-i18n="kpi_page_title">KPI Kalkulator</h1>
+    <p class="page-subtitle" data-i18n="kpi_page_sub">W&auml;hlen Sie eine Perspektive und berechnen Sie Ihre Kennzahlen</p>
+    <div class="perspective-tabs" id="perspectiveTabs"></div>
+    <div id="kpiContainer"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="page" id="page-dashboard">
+    <h1 class="page-title" data-i18n="dash_page_title">Dashboard</h1>
+    <p class="page-subtitle" data-i18n="dash_page_sub">&Uuml;bersicht aller berechneten KPIs mit Trendentwicklung</p>
+    <button class="reset-btn" onclick="resetDashboard()" data-i18n="dash_reset">Zur&uuml;cksetzen</button>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="dash-grid" id="dashboardPageContainer"></div>
+  </div>
+
+  <!-- Authors -->
+  <div class="page" id="page-authors">
+    <h1 class="page-title" data-i18n="authors_title">Die Ideengeber</h1>
+    <p class="page-subtitle" data-i18n="authors_sub">Die K&ouml;pfe hinter dem TradeKPI-Framework</p>
+    <div class="authors-grid">
+      <div class="author-card">
+        <div class="author-avatar">LG</div>
+        <h3>Lars Sandro Gempp</h3>
+        <div class="role">Head of Customs &amp; Trade Compliance</div>
+        <div class="bio" data-i18n="author1_bio">Lars Sandro Gempp denkt Zoll und Exportkontrolle strategisch, datengest&uuml;tzt und technologieoffen. &Uuml;ber 15 Jahre F&uuml;hrungserfahrung in international regulierten Unternehmensumfeldern &ndash; vom vollst&auml;ndigen Insourcing der Importverzollung &uuml;ber den Aufbau von ICP-Strukturen nach internationalen Standards bis zur Einf&uuml;hrung KI-gest&uuml;tzter Systeme f&uuml;r Klassifizierung, Screening und Risikoanalyse. Gr&uuml;nder &amp; Inhaber von easyZoll (Beratung, Training, Consulting f&uuml;r KMU) und Vorstandsmitglied des Europ&auml;ischen Forums f&uuml;r Au&szlig;enwirtschaft e.&nbsp;V. (EFA).</div>
+        <div class="author-tags">
+          <span class="author-tag">Zoll</span>
+          <span class="author-tag">Export Control</span>
+          <span class="author-tag">ICP</span>
+          <span class="author-tag">KPI-Management</span>
+          <span class="author-tag">KI &amp; Digitalisierung</span>
+        </div>
+        <div class="author-links">
+          <a href="https://www.linkedin.com/in/larsgempp/" target="_blank" rel="noopener" class="author-linkedin">LinkedIn Profil</a>
+          <a href="mailto:lars.gempp@easyzoll.com" class="author-email">lars.gempp@easyzoll.com</a>
+        </div>
+      </div>
+      <div class="author-card">
+        <div class="author-avatar">ML</div>
+        <h3>Mladen Lisica</h3>
+        <div class="role">Unit Lead Analytics, ML/AI &ndash; Trade Compliance &amp; Logistics</div>
+        <div class="bio" data-i18n="author2_bio">Mladen Lisica verbindet tiefes Zoll-Dom&auml;nenwissen mit Data-Driven Strategy und KI. Als Unit Lead Analytics, ML/AI bei AEB SE verantwortet er den Aufbau einer Data Intelligence Plattform f&uuml;r Zoll, Exportkontrolle und Logistik. Zuvor &uuml;ber 15 Jahre bei MIC Customs Solutions &ndash; als Product Owner, Team Manager und Presales Consultant EMEA f&uuml;r multinationale Projekte bei Tier-1- und Tier-2-Kunden in &uuml;ber 10 L&auml;ndern. Experte f&uuml;r Customs Filing, Tarifierung, Free Zone und Special Procedures.</div>
+        <div class="author-tags">
+          <span class="author-tag">Data Analytics</span>
+          <span class="author-tag">ML/AI</span>
+          <span class="author-tag">Customs IT</span>
+          <span class="author-tag">Trade Compliance</span>
+          <span class="author-tag">Prozessoptimierung</span>
+        </div>
+        <div class="author-links">
+          <a href="https://www.linkedin.com/in/mladen-lisica/" target="_blank" rel="noopener" class="author-linkedin">LinkedIn Profil</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div class="page" id="page-contact">
+    <h1 class="page-title" data-i18n="contact_title">Kontakt</h1>
+    <div class="contact-cta">
+      <h2 data-i18n="contact_cta_title">Kontaktieren Sie uns</h2>
+      <p data-i18n="contact_cta_text">F&uuml;r Fragen, Feedback oder um das vollst&auml;ndige KPI-Buch zu erhalten, schreiben Sie uns eine E-Mail.</p>
+      <a href="mailto:lars.gempp@easyzoll.com" class="contact-btn" data-i18n="contact_btn">E-Mail senden</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Language must be declared BEFORE checkPassword ──
+let currentLanguage = sessionStorage.getItem('tkpi_lang') || 'de';
+
+// ── Translations ──
+const translations = {
+  de: {
+    pw_subtitle: 'Anmeldung erforderlich f\u00FCr Zugriff auf das KPI-System',
+    pw_user_placeholder: 'Benutzername',
+    pw_placeholder: 'Passwort eingeben',
+    pw_btn: 'Zugang',
+    pw_hint: 'Hinweis: Benutzername und Passwort erforderlich',
+    pw_error: 'Falscher Benutzername oder Passwort. Bitte erneut versuchen.',
+    nav_main: 'Haupt',
+    nav_home: 'Startseite',
+    nav_kpis: 'KPI Kalkulator',
+    nav_dashboard: 'Dashboard',
+    nav_more: 'Mehr',
+    nav_authors: 'Die Ideengeber',
+    nav_contact: 'Kontakt',
+    hero_badge: 'Zoll- und Exportkontrolle',
+    hero_title: 'Kennzahlen-Management mit Wirkung',
+    hero_text: 'Das TradeKPI-Framework liefert 31 praxiserprobte Indikatoren aus 5 Perspektiven, um Zoll- und Exportkontrollprozesse messbar, steuerbar und auditfest zu machen. Entwickelt als Begleitprodukt zum Fachbuch von Lars Gempp & Mladen Lisica.',
+    quote_text: '\u00ABZoll- und Exportkontrolle ohne Kennzahlen ist wie Navigation ohne Kompass \u2013 wer nicht misst, kann nicht steuern, und wer nicht steuert, riskiert Compliance und Wettbewerbsf\u00E4higkeit.\u00BB',
+    dash_preview_title: 'Aktuelle Messwerte',
+    dash_preview_sub: 'Ihre zuletzt berechneten KPI-Ergebnisse',
+    dash_reset: 'Zur\u00FCcksetzen',
+    pillars_title: 'Die 5 S\u00E4ulen',
+    pillars_intro: 'Das Framework gliedert 31 Kennzahlen in f\u00FCnf strategische Perspektiven \u2013 von der organisatorischen Reife \u00FCber operative Exzellenz bis zum finanziellen Wertbeitrag.',
+    why_title: 'Warum KPI-Reporting?',
+    kpi_page_title: 'KPI Kalkulator',
+    kpi_page_sub: 'W\u00E4hlen Sie eine Perspektive und berechnen Sie Ihre Kennzahlen',
+    dash_page_title: 'Dashboard',
+    dash_page_sub: '\u00DCbersicht aller berechneten KPIs mit Trendentwicklung',
+    authors_title: 'Die Ideengeber',
+    authors_sub: 'Die K\u00F6pfe hinter dem TradeKPI-Framework',
+    author1_bio: 'Lars Sandro Gempp denkt Zoll und Exportkontrolle strategisch, datengest\u00FCtzt und technologieoffen. \u00DCber 15 Jahre F\u00FChrungserfahrung in international regulierten Unternehmensumfeldern \u2013 vom vollst\u00E4ndigen Insourcing der Importverzollung \u00FCber den Aufbau von ICP-Strukturen nach internationalen Standards bis zur Einf\u00FChrung KI-gest\u00FCtzter Systeme f\u00FCr Klassifizierung, Screening und Risikoanalyse. Gr\u00FCnder & Inhaber von easyZoll (Beratung, Training, Consulting f\u00FCr KMU) und Vorstandsmitglied des Europ\u00E4ischen Forums f\u00FCr Au\u00DFenwirtschaft e.\u00A0V. (EFA).',
+    author2_bio: 'Mladen Lisica verbindet tiefes Zoll-Dom\u00E4nenwissen mit Data-Driven Strategy und KI. Als Unit Lead Analytics, ML/AI bei AEB SE verantwortet er den Aufbau einer Data Intelligence Plattform f\u00FCr Zoll, Exportkontrolle und Logistik. Zuvor \u00FCber 15 Jahre bei MIC Customs Solutions \u2013 als Product Owner, Team Manager und Presales Consultant EMEA f\u00FCr multinationale Projekte bei Tier-1- und Tier-2-Kunden in \u00FCber 10 L\u00E4ndern. Experte f\u00FCr Customs Filing, Tarifierung, Free Zone und Special Procedures.',
+    contact_title: 'Kontakt',
+    contact_cta_title: 'Kontaktieren Sie uns',
+    contact_cta_text: 'F\u00FCr Fragen, Feedback oder um das vollst\u00E4ndige KPI-Buch zu erhalten, schreiben Sie uns eine E-Mail.',
+    contact_btn: 'E-Mail senden',
+    calc_open: 'Kalkulator \u00F6ffnen',
+    calc_close: 'Kalkulator schlie\u00DFen',
+    calc_btn: 'Berechnen',
+    lbl_datasource: 'Datenquelle',
+    lbl_owner: 'Owner',
+    lbl_frequency: 'Frequenz',
+    lbl_legal: 'Rechtsbezug',
+    lbl_formula: 'Formel',
+    lbl_measures: 'Empfohlene Ma\u00DFnahmen',
+    badge_green: 'Im Zielbereich',
+    badge_yellow: 'Handlungsbedarf',
+    badge_red: 'Kritisch',
+    dash_total: 'Gesamt-KPIs',
+    dash_green: 'Gr\u00FCn',
+    dash_yellow: 'Gelb',
+    dash_red: 'Rot',
+    dash_first: 'Erstmessung',
+    dash_prev: 'Vorher',
+    pillar1_title: 'Awareness & Organisation',
+    pillar1_desc: 'Misst organisatorische Reife \u2013 Schulungen, Audits, ICP-Reifegrad, Personalausstattung und Dokumentationsgrad',
+    pillar2_title: 'Operative Exzellenz & Qualit\u00E4t',
+    pillar2_desc: 'Bewertet Prozesseffizienz \u2013 Abwicklungszeiten, Fehlerquoten, Automatisierungsgrade und First-Time-Right-Raten',
+    pillar3_title: 'Rechtssicherheit & Compliance',
+    pillar3_desc: 'Pr\u00FCft die Einhaltung regulatorischer Vorgaben \u2013 Screening-Qualit\u00E4t, Genehmigungsmanagement, Verst\u00F6\u00DFe und Korrekturma\u00DFnahmen',
+    pillar4_title: 'Regulatorische Kommunikation',
+    pillar4_desc: 'Misst die Qualit\u00E4t der Beh\u00F6rdeninteraktion \u2013 Reaktionszeiten, Bewilligungsmanagement, Fristeneinhaltung und Audit-Readiness',
+    pillar5_title: 'Zollwert & Abgabenmanagement',
+    pillar5_desc: 'Quantifiziert den finanziellen Wertbeitrag \u2013 Duty Savings, Nacherhebungen, Cost-per-Declaration und Trade-Compliance-ROI',
+    why1_title: 'Steuerung statt Statistik',
+    why1_text: 'KPIs als Steuerinstrumente \u2013 nicht als r\u00FCckblickende Statistik, sondern als Grundlage f\u00FCr zukunftsgerichtete Entscheidungen.',
+    why2_title: 'Kommunikation auf Augenh\u00F6he',
+    why2_text: 'Gemeinsame Sprache mit dem Management \u2013 Kennzahlen \u00FCbersetzen Compliance-Arbeit in die Sprache der Unternehmensf\u00FChrung.',
+    why3_title: 'Nachweis & Auditfestigkeit',
+    why3_text: 'Messbare Evidenz f\u00FCr Beh\u00F6rden \u2013 KPIs dokumentieren Sorgfalt und Wirksamkeit des Compliance-Systems.',
+    persp1: 'Awareness & Organisation',
+    persp2: 'Operative Exzellenz & Qualit\u00E4t',
+    persp3: 'Rechtssicherheit & Compliance',
+    persp4: 'Regulatorische Kommunikation',
+    persp5: 'Zollwert & Abgabenmanagement',
+    div_zero: 'Division durch Null nicht m\u00F6glich'
+  },
+  en: {
+    pw_subtitle: 'Login required to access the KPI system',
+    pw_user_placeholder: 'Username',
+    pw_placeholder: 'Enter password',
+    pw_btn: 'Access',
+    pw_hint: 'Note: Username and password required',
+    pw_error: 'Wrong username or password. Please try again.',
+    nav_main: 'Main',
+    nav_home: 'Home',
+    nav_kpis: 'KPI Calculator',
+    nav_dashboard: 'Dashboard',
+    nav_more: 'More',
+    nav_authors: 'The Visionaries',
+    nav_contact: 'Contact',
+    hero_badge: 'Customs & Export Control',
+    hero_title: 'KPI Management with Impact',
+    hero_text: 'The TradeKPI framework provides 31 field-proven indicators across 5 perspectives to make customs and export control processes measurable, manageable, and audit-proof. Developed as a companion to the book by Lars Gempp & Mladen Lisica.',
+    quote_text: '\u00ABCustoms and export control without KPIs is like navigation without a compass \u2013 if you don\u2019t measure, you can\u2019t manage, and if you don\u2019t manage, you risk compliance and competitiveness.\u00BB',
+    dash_preview_title: 'Current Measurements',
+    dash_preview_sub: 'Your most recently calculated KPI results',
+    dash_reset: 'Reset',
+    pillars_title: 'The 5 Pillars',
+    pillars_intro: 'The framework organizes 31 KPIs into five strategic perspectives \u2013 from organizational maturity through operational excellence to financial value contribution.',
+    why_title: 'Why KPI Reporting?',
+    kpi_page_title: 'KPI Calculator',
+    kpi_page_sub: 'Select a perspective and calculate your KPIs',
+    dash_page_title: 'Dashboard',
+    dash_page_sub: 'Overview of all calculated KPIs with trend tracking',
+    authors_title: 'The Visionaries',
+    authors_sub: 'The minds behind the TradeKPI framework',
+    author1_bio: 'Lars Sandro Gempp approaches customs and export control strategically, data-driven and technology-open. Over 15 years of leadership experience in internationally regulated corporate environments \u2013 from full insourcing of import customs clearance to building ICP structures to international standards and implementing AI-powered systems for classification, screening and risk analysis. Founder & owner of easyZoll (consulting, training for SMEs) and board member of the European Forum for Foreign Trade (EFA).',
+    author2_bio: 'Mladen Lisica combines deep customs domain expertise with data-driven strategy and AI. As Unit Lead Analytics, ML/AI at AEB SE, he is responsible for building a Data Intelligence Platform for customs, export control and logistics. Previously over 15 years at MIC Customs Solutions \u2013 as Product Owner, Team Manager and Presales Consultant EMEA for multinational projects with Tier-1 and Tier-2 customers across more than 10 countries. Expert in customs filing, tariff classification, free zones and special procedures.',
+    contact_title: 'Contact',
+    contact_cta_title: 'Contact Us',
+    contact_cta_text: 'For questions, feedback or to obtain the full KPI book, send us an email.',
+    contact_btn: 'Send Email',
+    calc_open: 'Open Calculator',
+    calc_close: 'Close Calculator',
+    calc_btn: 'Calculate',
+    lbl_datasource: 'Data Source',
+    lbl_owner: 'Owner',
+    lbl_frequency: 'Frequency',
+    lbl_legal: 'Legal Reference',
+    lbl_formula: 'Formula',
+    lbl_measures: 'Recommended Actions',
+    badge_green: 'On Target',
+    badge_yellow: 'Action Needed',
+    badge_red: 'Critical',
+    dash_total: 'Total KPIs',
+    dash_green: 'Green',
+    dash_yellow: 'Yellow',
+    dash_red: 'Red',
+    dash_first: 'First measurement',
+    dash_prev: 'Previous',
+    div_zero: 'Division by zero not possible',
+    pillar1_title: 'Awareness & Organization',
+    pillar1_desc: 'Measures organizational maturity \u2013 training, audits, ICP maturity, staffing and documentation levels',
+    pillar2_title: 'Operational Excellence & Quality',
+    pillar2_desc: 'Evaluates process efficiency \u2013 processing times, error rates, automation levels and first-time-right rates',
+    pillar3_title: 'Legal Certainty & Compliance',
+    pillar3_desc: 'Checks compliance with regulatory requirements \u2013 screening quality, license management, violations and corrective actions',
+    pillar4_title: 'Regulatory Communication',
+    pillar4_desc: 'Measures authority interaction quality \u2013 response times, authorization management, deadline compliance and audit readiness',
+    pillar5_title: 'Customs Value & Duty Management',
+    pillar5_desc: 'Quantifies financial value contribution \u2013 duty savings, additional assessments, cost-per-declaration and trade compliance ROI',
+    why1_title: 'Management, Not Statistics',
+    why1_text: 'KPIs as management tools \u2013 not retrospective statistics but the foundation for forward-looking decisions.',
+    why2_title: 'Communication at Eye Level',
+    why2_text: 'Common language with management \u2013 KPIs translate compliance work into the language of corporate leadership.',
+    why3_title: 'Evidence & Audit-Readiness',
+    why3_text: 'Measurable evidence for authorities \u2013 KPIs document due diligence and effectiveness of the compliance system.',
+    persp1: 'Awareness & Organization',
+    persp2: 'Operational Excellence & Quality',
+    persp3: 'Legal Certainty & Compliance',
+    persp4: 'Regulatory Communication',
+    persp5: 'Customs Value & Duty Management'
+  }
+};
+
+// ── KPI English Translations ──
+const kpiEN = {
+  ao1:{name:'Internal Audit Completion Rate',desc:'Measures the extent to which planned internal audits in customs and export control were actually conducted',hints:['Number of internal audits actually conducted in the period','Number of audits scheduled per audit plan'],formula:'(Completed Audits / Planned Audits) \u00D7 100',inputs:['Completed Audits','Planned Audits'],placeholders:['e.g. 4','e.g. 5'],source:'Audit Plan, Internal Audit Reports, ICP Documentation',owner:'Head of Trade Compliance',freq:'Annually',legal:'BAFA ICP Guideline Ch. 2.8',measures:{green:['Translate audit findings into improvement measures','Expand audit scope to new risk areas'],yellow:['Check resource planning for audits','Prioritize high-risk areas'],red:['Overhaul audit program fundamentally','Consider external audit support','Escalation: ICP compliance at risk']}},
+  ao2:{name:'Training Rate Critical Personnel',desc:'Share of employees in critical roles who completed mandatory customs/export control training',hints:['Number of persons in critical roles who were trained','Total number of positions defined as critical'],formula:'(Trained Persons / Critical Roles) \u00D7 100',inputs:['Trained Persons','Critical Roles'],placeholders:['e.g. 45','e.g. 50'],source:'HR System, Learning Management System (LMS)',owner:'Trade Compliance Manager',freq:'Quarterly',legal:'BAFA ICP Guideline Ch. 2.7.2; Art. 39 d) UCC',measures:{green:['Maintain training program and extend','Archive certificates as audit evidence'],yellow:['Analyze training gaps by department','Activate LMS reminder automation'],red:['Immediate escalation: compliance risk','Set up mandatory training with deadlines','Root cause analysis: budget, time, relevance?']}},
+  ao3:{name:'Escalation Rate Export Control Checks',desc:'Share of export control checks that required escalation to a higher decision level',hints:['Checks escalated to a higher authority','Total number of export control checks performed'],formula:'(Escalations / Checks) \u00D7 100',inputs:['Number of Escalations','Number of Checks'],placeholders:['e.g. 3','e.g. 200'],source:'Export Clearance/Screening System, Ticket/Workflow Tool',owner:'Export Control Officer',freq:'Quarterly',legal:'BAFA ICP Guideline Ch. 2.8',measures:{green:['Document decision criteria as best practice','Optimize escalation matrix'],yellow:['Analyze escalation reasons','Check if decision authority can be delegated'],red:['Review escalation process fundamentally','Clarify responsibilities and competencies','Training for decision-makers']}},
+  ao4:{name:'Response Time for Compliance Incidents',desc:'Average time from detection of a compliance incident to first response action',formula:'Sum of Response Times / Number of Incidents',inputs:['Sum of Response Times (days)','Number of Incidents'],placeholders:['e.g. 9','e.g. 3'],hints:['Sum of days from detection to first response for all incidents','Total number of compliance incidents in the period'],source:'Incident Register, Compliance Tool',owner:'Head of Trade Compliance',freq:'Per incident / Quarterly',legal:'BAFA ICP Guideline Ch. 2.8',measures:{green:['Maintain response standard','Document response procedures'],yellow:['Optimize escalation paths','Define clear responsibilities'],red:['Immediate: prioritize all open incidents','Assign dedicated incident manager','Risk: delayed response increases liability']}},
+  oe1:{name:'End-Use Certificate Completeness',desc:'Share of required end-use certificates (EVEs) that are complete and correctly filled out',hints:['Number of correctly and completely filled EVEs','Total number of required EVEs in the period'],formula:'(Complete EVEs / Required EVEs) \u00D7 100',inputs:['Complete EVEs','Required EVEs'],placeholders:['e.g. 48','e.g. 50'],source:'License Files, Document Management System, BAFA Application Documents',owner:'Export Control Officer',freq:'Per application / Quarterly',legal:'Dual-Use Regulation, BAFA Guidelines',measures:{green:['Maintain documentation quality','Archive as audit evidence'],yellow:['Analyze gaps in EVE process','Implement checklist for completeness'],red:['Review EVE process fundamentally','Training for responsible staff','Implement quality gate before submission']}},
+  oe2:{name:'Supplier Declaration Return Rate',desc:'Share of requested supplier declarations returned on time',hints:['Number of supplier declarations received within the deadline','Total number of requested declarations'],formula:'(Timely Returns / Requested Declarations) \u00D7 100',inputs:['Timely Returns','Requested Declarations'],placeholders:['e.g. 85','e.g. 100'],source:'Origin/Preference Module (e.g. SAP GTS), Supplier Portal',owner:'Trade Compliance / Origin Management',freq:'Quarterly',legal:'UCC, Del. Reg. 2015/2446 and Impl. Reg. 2015/2447',measures:{green:['Proactively manage supplier relationships','Automate reminder process'],yellow:['Escalate with non-responsive suppliers','Simplify declaration forms'],red:['Quantify lost preferences due to missing declarations','Establish supplier management process','Consider alternative origin proofs']}},
+  oe3:{name:'Automated Procedures Rate',desc:'Share of fully automated customs declarations relative to total declarations',hints:['Declarations processed without manual intervention','Total number of customs declarations in the period'],formula:'(Fully Automated Declarations / Total Declarations) \u00D7 100',inputs:['Fully Automated Declarations','Total Declarations'],placeholders:['e.g. 700','e.g. 1000'],source:'Customs/GTS System, ERP',owner:'IT / Process Owner',freq:'Quarterly',legal:'Art. 6, 38, 39 UCC',measures:{green:['Evaluate next automation level (AI, RPA)','Optimize exception handling'],yellow:['Identify remaining manual processes','Check system customizing'],red:['Create digitalization roadmap','Automate standard cases first','Build business case for system integration']}},
+  oe4:{name:'Documentation Accuracy',desc:'Share of customs-relevant documents that are correct and complete upon audit review',hints:['Number of documents rated correct in sample/audit','Total number of audited documents/transactions'],formula:'(Correct Documents / Audited Documents) \u00D7 100',inputs:['Correct Documents','Audited Documents'],placeholders:['e.g. 196','e.g. 200'],source:'Archive/DMS System, Sample Audit Logs, Internal Audits',owner:'Team Lead Customs Processing',freq:'Quarterly',legal:'Art. 15, 163 UCC; BAFA ICP Guideline',measures:{green:['Maintain quality standard','Use as audit evidence'],yellow:['Analyze error types','Implement checklists'],red:['Mandatory quality checks for all documents','Training initiative','Review document templates']}},
+  oe5:{name:'ATLAS Return Rate (Export)',desc:'Share of export declarations returned by customs due to errors',hints:['Number of declarations rejected/flagged by ATLAS','Total number of submitted export declarations'],formula:'(Error Messages / Total Export Declarations) \u00D7 100',inputs:['Error Messages','Total Export Declarations'],placeholders:['e.g. 12','e.g. 1000'],source:'ATLAS Statistics, Customs Software Logs, Export Archive',owner:'Team Lead Customs Processing',freq:'Monthly',legal:'Art. 15 UCC',measures:{green:['Maintain low error rate','Document as quality evidence'],yellow:['Analyze error types systematically','Targeted training'],red:['Implement four-eyes principle','Master data audit','Review validation rules']}},
+  oe6:{name:'Customs Transactions per Employee',desc:'Number of customs declarations processed per FTE per year',formula:'Total Customs Declarations / FTE in Customs Department',inputs:['Total Customs Declarations','FTE in Customs Department'],placeholders:['e.g. 6000','e.g. 5'],hints:['All import/export declarations per year','Full-time equivalents in the customs team'],source:'Customs/GTS System, HR/FTE Planning',owner:'Head of Trade Compliance',freq:'Annually',legal:'Art. 39 lit. a) UCC; AEO Criteria',measures:{green:['Document efficiency benchmark','Evaluate further automation'],yellow:['Check workload distribution','Identify capacity bottlenecks'],red:['Review staffing model','Assess outsourcing options','Implement process optimization']}},
+  oe7:{name:'Average Clearance Time',desc:'Average processing time from document receipt to customs clearance',formula:'Sum of Clearance Times / Number of Declarations',inputs:['Sum of Clearance Times (hours)','Number of Declarations'],placeholders:['e.g. 480','e.g. 100'],hints:['Total processing time of all transactions in hours','Number of customs declarations in the measurement period'],source:'GTS/Customs System, ATLAS Status Times',owner:'Team Lead Customs Processing',freq:'Monthly',legal:'Art. 188 UCC; WTO Trade Facilitation Agreement',measures:{green:['Document as benchmark','Further optimize processes'],yellow:['Bottleneck analysis','Check pre-declaration options'],red:['Process re-engineering','Optimize system interfaces','Evaluate simplified procedures']}},
+  oe8:{name:'Export Clearance Automation Rate',desc:'Share of export clearances processed fully automatically',hints:['Export clearances granted automatically (no manual intervention)','Total number of export clearances'],formula:'(Automated Clearances / Total Clearances) \u00D7 100',inputs:['Automated Clearances','Total Clearances'],placeholders:['e.g. 350','e.g. 500'],source:'Export Control/Screening System, ERP Logs',owner:'IT / Export Control Officer',freq:'Quarterly',legal:'Art. 6 UCC; ICP Requirements',measures:{green:['Evaluate AI/ML-based automation','Optimize rule engine'],yellow:['Identify manual clearance reasons','Extend automation rules'],red:['Create automation roadmap','Implement standard rules first','Business case for system upgrade']}},
+  rc1:{name:'Compliance Incidents / Self-Disclosures',desc:'Number of compliance incidents or self-disclosures per 1,000 exports',hints:['Compliance incidents and self-disclosures in the period','Total number of export transactions in the same period'],formula:'(Incidents / Total Exports) \u00D7 1,000',inputs:['Number of Incidents/Self-Disclosures','Total Exports'],placeholders:['e.g. 2','e.g. 5000'],source:'Compliance/Legal Department, Incident Register',owner:'Head of Trade Compliance',freq:'Quarterly',legal:'\u00A7 22 AWG, BAFA Guidelines, ICP Requirements',measures:{green:['Strengthen compliance culture','Maintain prevention measures'],yellow:['Categorize incident types','Derive targeted training'],red:['Root cause analysis of all incidents','Implement CAPA process','Check: self-disclosure required?']}},
+  rc2:{name:'Correctly Classified Goods Rate',desc:'Share of tariff numbers that are correctly classified upon audit review',hints:['Tariff numbers rated correct upon review','Total number of audited tariff numbers'],formula:'(Correct Tariff Numbers / Audited Numbers) \u00D7 100',inputs:['Correct Tariff Numbers','Audited Numbers'],placeholders:['e.g. 96','e.g. 100'],source:'GTS/Customs System, ERP Master Data',owner:'Classification Specialist',freq:'Quarterly',legal:'Art. 15 UCC, Customs Tariff Law',measures:{green:['Maintain classification documentation','Evaluate AI-supported classification'],yellow:['Analyze error clusters','Request BTIs for core products'],red:['Full tariff number audit','Build classification CoE','Involve external expertise']}},
+  rc3:{name:'Relevant Tariff Changes Count',desc:'Number of tariff classification changes with relevance to own product portfolio in the period',formula:'Absolute number of relevant changes',inputs:['Number of Relevant Tariff Changes'],placeholders:['e.g. 12'],hints:['Tariff changes affecting your product portfolio'],source:'TARIC/Tariff Updates, Internal Change Logs, GTS System',owner:'Classification Specialist',freq:'Quarterly',legal:'UCC, TARIC/HS Changes',measures:{green:['Monitoring process works well','Document change impact'],yellow:['Review monitoring frequency','Ensure timely master data updates'],red:['Establish systematic tariff monitoring','Assign clear responsibilities','Automate change notifications']}},
+  rc4:{name:'Origin Declaration Consistency Rate',desc:'Share of origin declarations that are correct and consistent',hints:['Origin declarations rated correct and consistent','Total number of audited origin declarations'],formula:'(Correct Declarations / Total Declarations) \u00D7 100',inputs:['Correct Declarations','Total Declarations'],placeholders:['e.g. 195','e.g. 200'],source:'Origin Database, Sample Checks, Feedback from Customs/Customers',owner:'Trade Compliance / Origin Management',freq:'Quarterly',legal:'Preferential Agreements, UCC, Implementing Regulation',measures:{green:['Maintain quality standard','Archive as audit evidence'],yellow:['Analyze error patterns','Strengthen supplier verification'],red:['Implement systematic quality checks','Training for origin staff','Review calculation methodology']}},
+  rc5:{name:'Customs Declaration Error Rate',desc:'Share of customs declarations with objections or errors identified by customs',hints:['Declarations objected or corrected by customs','Total number of customs declarations in the period'],formula:'(Objected Declarations / Total Declarations) \u00D7 100',inputs:['Objected Declarations','Total Declarations'],placeholders:['e.g. 5','e.g. 1000'],source:'Customs Audit Reports, Internal QA, ATLAS Feedback',owner:'Team Lead Customs Processing',freq:'Monthly',legal:'Art. 15 UCC',measures:{green:['Maintain quality standard','Keep automatic validation'],yellow:['Analyze error types','Derive training needs'],red:['Implement four-eyes principle','Master data audit','Accelerate process automation']}},
+  rc6:{name:'ATLAS Return Rate',desc:'Share of customs declarations returned by the ATLAS system due to formal/content errors',hints:['Declarations returned by the ATLAS system','Total number of submitted declarations'],formula:'(Returns / Total Declarations) \u00D7 100',inputs:['Number of Returns','Total Declarations'],placeholders:['e.g. 15','e.g. 1000'],source:'ATLAS Logs, Customs Software, Customs Office Reports',owner:'Team Lead Customs Processing',freq:'Monthly',legal:'Art. 15 UCC, AEO Criteria',measures:{green:['Maintain low return rate','Document as quality evidence'],yellow:['Categorize return reasons','Targeted staff training'],red:['Implement mandatory validation','Review master data quality','Optimize system configuration']}},
+  rc7:{name:'Sanctions Screening Hit Rate',desc:'Share of screening checks that produce a hit requiring manual review',hints:['Screening hits requiring manual review','Total number of screening checks performed'],formula:'(Hits / Screening Checks) \u00D7 100',inputs:['Number of Hits','Number of Screening Checks'],placeholders:['e.g. 50','e.g. 5000'],source:'Screening Tool, Export Clearance System',owner:'Export Control Officer',freq:'Monthly',legal:'EU Sanctions Regulations, AWG/AWV',measures:{green:['Screening configuration is well calibrated','Regular list updates confirmed'],yellow:['Optimize fuzzy logic parameters','Maintain verified partner whitelist'],red:['Calibrate screening algorithm','Quantify manual review costs','Evaluate AI-based screening']}},
+  rc8:{name:'Export License Requirement Rate',desc:'Share of exports requiring an export license',hints:['Exports requiring a BAFA license','Total number of export transactions'],formula:'(License-Required Exports / Total Exports) \u00D7 100',inputs:['License-Required Exports','Total Exports'],placeholders:['e.g. 50','e.g. 1000'],source:'BAFA Application List, Export Control System, ERP',owner:'Export Control Officer',freq:'Quarterly',legal:'EU Dual-Use Reg. 2021/821, AWG \u00A7 8, BAFA Guidelines',measures:{green:['Rate is within expected range','License process is efficient'],yellow:['Analyze if rate changed unexpectedly','Review product classification'],red:['Verify classification of all exported goods','Check for regulatory changes','Review customer/destination risk']}},
+  rk1:{name:'Dual-Use Goods Share',desc:'Share of exported goods classified as dual-use',hints:['Number of exported items classified as dual-use','Total number of exported goods items'],formula:'(Dual-Use Goods / Total Exported Goods) \u00D7 100',inputs:['Dual-Use Goods','Total Exported Goods'],placeholders:['e.g. 120','e.g. 1000'],source:'Product Master with Dual-Use Flag, ECCN/AL Numbers',owner:'Export Control Officer',freq:'Quarterly',legal:'Reg. (EU) 2021/821 (Dual-Use Regulation)',measures:{green:['Rate is within expected range','Classification is current'],yellow:['Review if portfolio changed','Check for new list entries'],red:['Full product portfolio review','Update all classifications','Involve external classification support']}},
+  rk2:{name:'Export Denial Rate',desc:'Share of export transactions denied after screening/review',hints:['Number of finally denied export transactions','Total number of screening checks performed'],formula:'(Denied Exports / Total Screening Checks) \u00D7 100',inputs:['Denied Exports','Total Screening Checks'],placeholders:['e.g. 3','e.g. 500'],source:'Export Clearance System, Decision Matrix',owner:'Export Control Officer',freq:'Quarterly',legal:'AWG \u00A7 8, ICP Guidelines',measures:{green:['Process works effectively','Document denial rationale'],yellow:['Analyze denial patterns','Review customer risk profiles'],red:['Review screening criteria','Assess business partner risks','Strengthen pre-check processes']}},
+  rk3:{name:'Export Volume to Embargo Countries',desc:'Share of total export value going to countries under embargo or sanctions',hints:['Export value to sanctioned/embargoed countries','Total export value in the period'],formula:'(Export Value Embargo Countries / Total Export Value) \u00D7 100',inputs:['Export Value Embargo Countries','Total Export Value'],placeholders:['e.g. 500000','e.g. 50000000'],source:'ERP (Country Statistics), Country Risk Reports',owner:'Head of Trade Compliance',freq:'Quarterly',legal:'EU Embargo Regulations, AWG \u00A7 17',measures:{green:['Monitoring works well','Risk is managed'],yellow:['Review country risk assessment','Check for new sanctions'],red:['Immediate review of all embargo transactions','Verify all licenses and exemptions','Escalation to management']}},
+  rk4:{name:'BAFA License Application Query Rate',desc:'Share of export license applications receiving queries/requests for additional information from BAFA',hints:['Queries/requests from BAFA regarding your applications','Total number of license applications submitted'],formula:'(Queries / Applications) \u00D7 100',inputs:['Number of BAFA Queries','Number of Applications'],placeholders:['e.g. 2','e.g. 20'],source:'BAFA Correspondence, License Files',owner:'Export Control Officer',freq:'Per application / Annually',legal:'AWG/AWV, BAFA Procedures',measures:{green:['Application quality is high','Maintain preparation standards'],yellow:['Analyze query reasons','Improve application documentation'],red:['Review application process fundamentally','Implement internal quality check before submission','Training for application staff']}},
+  rk5:{name:'Export License Processing Time',desc:'Average processing time for export license applications (from submission to decision)',formula:'Sum of Processing Times / Number of Applications',inputs:['Sum of Processing Times (days)','Number of Applications'],placeholders:['e.g. 900','e.g. 20'],hints:['Sum of days from submission to decision for all applications','Total number of applications in the period'],source:'Application Overview, BAFA Decisions, Internal Timestamps',owner:'Export Control Officer',freq:'Per application / Annually',legal:'BAFA Procedures',measures:{green:['Processing time is within expectations','Communicate timeline to business'],yellow:['Check if complexity has increased','Prepare pre-consultations with BAFA'],red:['Analyze causes for delays','Improve application quality','Consider informal pre-clarification']}},
+  rk6:{name:'Export Blockage Rate',desc:'Share of export shipments blocked by internal compliance checks',hints:['Shipments blocked by internal compliance checks','Total number of export shipments'],formula:'(Blocked Shipments / Total Export Shipments) \u00D7 100',inputs:['Blocked Shipments','Total Export Shipments'],placeholders:['e.g. 5','e.g. 1000'],source:'ERP/GTS Block Logs, Shipping and Order Status',owner:'Export Control Officer',freq:'Monthly',legal:'Internal ICP, ERP Block Logic',measures:{green:['Block process works correctly','Low false positive rate'],yellow:['Analyze block reasons','Optimize block rules'],red:['Review block criteria','Assess impact on delivery performance','Optimize screening configuration']}},
+  za1:{name:'Customs Declarations Count (Import/Export)',desc:'Total number of import and export customs declarations per period',formula:'Import Declarations + Export Declarations',inputs:['Import Declarations','Export Declarations'],placeholders:['e.g. 3000','e.g. 2500'],hints:['Number of all import declarations in the period','Number of all export declarations in the period'],source:'Customs/GTS System, ATLAS Statistics, Service Provider Reports',owner:'Team Lead Customs Processing',freq:'Monthly',legal:'Art. 5 Nr. 12 i.c.w. Art. 162-188 UCC',measures:{green:['Volume is stable and manageable','Capacity planning is adequate'],yellow:['Check if volume growth requires additional resources','Review service provider capacity'],red:['Adjust staffing plan','Evaluate automation potential','Review process capacity']}},
+  za2:{name:'Document Response Rate',desc:'Share of required document responses received on time from internal/external stakeholders',hints:['Responses received within the deadline','Total number of requested documents/responses'],formula:'(Timely Responses / Required Responses) \u00D7 100',inputs:['Timely Responses','Required Responses'],placeholders:['e.g. 190','e.g. 200'],source:'Document Request Lists, Workflow Tool, Email Tracking',owner:'Trade Compliance Manager',freq:'Monthly',legal:'Art. 15 UCC, \u00A7 8 AWV',measures:{green:['Response process works well','Maintain stakeholder relationships'],yellow:['Escalate with non-responsive parties','Simplify request process'],red:['Implement automated tracking','Define SLAs with stakeholders','Escalation process to management']}},
+  za3:{name:'Duty Ratio',desc:'Ratio of customs duties paid relative to total value of imported goods',hints:['Total customs duties paid in EUR','Total value of all imports in EUR'],formula:'(Total Duties / Total Import Value) \u00D7 100',inputs:['Total Duties (EUR)','Total Import Value (EUR)'],placeholders:['e.g. 500000','e.g. 20000000'],source:'Customs Duty Notices, Financial Accounting, Customs Value Reports',owner:'Head of Trade Compliance / Finance',freq:'Quarterly',legal:'Art. 70-75, 85 UCC',measures:{green:['Rate is optimized','Document optimization measures'],yellow:['Check for unused preferences','Analyze high-duty product groups'],red:['Comprehensive duty optimization review','Evaluate special procedures','Engage customs optimization expertise']}},
+  za4:{name:'Preference Utilization Rate',desc:'Share of preference-eligible shipments where preferences were actually used',hints:['Shipments where preferential origin was actually used','Shipments that were eligible for preference'],formula:'(Used Preferences / Preference-eligible Shipments) \u00D7 100',inputs:['Used Preferences','Preference-eligible Shipments'],placeholders:['e.g. 180','e.g. 200'],source:'Origin/Preference Module, Supplier Declarations, Tax Notices',owner:'Trade Compliance / Origin Management',freq:'Quarterly',legal:'Art. 55-58, 64 UCC; Preferential Agreements',measures:{green:['Preference utilization is high','Communicate savings to management'],yellow:['Identify missed preferences','Request missing supplier declarations'],red:['Quantify lost savings','Establish preference management process','Appoint preference coordinator']}},
+  za5:{name:'Duty Savings through Special Procedures',desc:'Share of duties saved through special customs procedures (e.g. inward processing, end-use, customs warehousing)',hints:['Duties actually saved through special procedures','Duties that would have been due without special procedures'],formula:'(Saved Duties / Theoretically Due Duties) \u00D7 100',inputs:['Saved Duties (EUR)','Theoretically Due Duties (EUR)'],placeholders:['e.g. 200000','e.g. 1500000'],source:'Procedure Settlements, Controlling Reports',owner:'Head of Trade Compliance',freq:'Quarterly',legal:'Art. 210-225 UCC (Special Procedures), Art. 85 UCC',measures:{green:['Savings are well documented','Communicate value contribution'],yellow:['Evaluate additional procedure opportunities','Check if savings potential is fully used'],red:['Comprehensive procedure review','Explore new special procedures','Build business case for procedure applications']}}
+};
+
+// Helper: get translated KPI field
+function kpiT(kpi, field) {
+  if (currentLanguage === 'en' && kpiEN[kpi.id] && kpiEN[kpi.id][field] !== undefined) {
+    return kpiEN[kpi.id][field];
+  }
+  return kpi[field];
+}
+
+function kpiMeasures(kpi, status) {
+  if (currentLanguage === 'en' && kpiEN[kpi.id] && kpiEN[kpi.id].measures) {
+    return kpiEN[kpi.id].measures[status] || kpi.measures[status];
+  }
+  return kpi.measures[status];
+}
+
+function kpiInputs(kpi) {
+  if (currentLanguage === 'en' && kpiEN[kpi.id]) {
+    return { inputs: kpiEN[kpi.id].inputs || kpi.inputs, placeholders: kpiEN[kpi.id].placeholders || kpi.placeholders, hints: kpiEN[kpi.id].hints || kpi.hints || [] };
+  }
+  return { inputs: kpi.inputs, placeholders: kpi.placeholders, hints: kpi.hints || [] };
+}
+
+// ── KPI Data (31 KPIs, matching book chapters 4.1-4.5) ──
+const perspectives = [
+  {
+    id: 'ao', name: 'Awareness & Organisation', nameKey: 'persp1',
+    kpis: [
+      { id:'ao1', name:'Quote interner Auditierungen', desc:'Misst, inwieweit die geplanten internen Audits in Zoll und Exportkontrolle tats\u00E4chlich durchgef\u00FChrt wurden', formula:'(Durchgef\u00FChrte Auditierungen / Geplante Auditierungen) \u00D7 100', unit:'%', source:'Auditplan, interne Auditberichte, ICP-Dokumentation', owner:'Head of Trade Compliance', freq:'J\u00E4hrlich', legal:'BAFA-ICP-Leitlinie Kap. 2.8',
+        inputs:['Durchgef\u00FChrte Auditierungen','Geplante Auditierungen'], placeholders:['z.B. 4','z.B. 5'],
+        hints:['Anzahl der im Zeitraum tats\u00E4chlich durchgef\u00FChrten internen Audits','Anzahl der laut Auditplan vorgesehenen Audits'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:80},
+        measures:{green:['Audit-Ergebnisse systematisch in Verbesserungsma\u00DFnahmen \u00FCbersetzen','Audit-Scope auf neue Risikobereiche erweitern'],yellow:['Ressourcenplanung f\u00FCr Audits pr\u00FCfen','Fokus auf risikoreiche Bereiche priorisieren'],red:['Auditprogramm grundlegend \u00FCberarbeiten','Externe Audit-Unterst\u00FCtzung pr\u00FCfen','Eskalation: ICP-Konformit\u00E4t gef\u00E4hrdet']}
+      },
+      { id:'ao2', name:'Schulungsquote kritisches Personal', desc:'Anteil der Mitarbeitenden in kritischen Rollen, die an Pflichtschulungen f\u00FCr Zoll/Exportkontrolle teilgenommen haben', formula:'(Geschulte Personen / Kritische Rollen) \u00D7 100', unit:'%', source:'HR-System, Learning Management System (LMS), Schulungs\u00FCbersichten', owner:'Trade Compliance Manager', freq:'Quartalsweise', legal:'BAFA-ICP-Leitlinie Kap. 2.7.2; Art. 39 d) UZK',
+        inputs:['Geschulte Personen','Kritische Rollen (Soll)'], placeholders:['z.B. 45','z.B. 50'],
+        hints:['Anzahl Personen in kritischen Rollen, die geschult wurden','Gesamtzahl der als kritisch definierten Rollen/Positionen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:80},
+        measures:{green:['Schulungsprogramm beibehalten und ausweiten','Zertifikate als Audit-Evidenz archivieren'],yellow:['Schulungsl\u00FCcken nach Abteilung analysieren','Reminder-Automatisierung im LMS aktivieren'],red:['Sofort-Eskalation an Management: Compliance-Risiko','Pflichtschulungen mit Deadline und Tracking aufsetzen','Root-Cause-Analyse: Budget, Zeitmangel oder Relevanzproblem?']}
+      },
+      { id:'ao3', name:'Eskalationsquote Exportkontrollpr\u00FCfungen', desc:'Anteil der Exportkontrollpr\u00FCfungen, die an eine h\u00F6here Entscheidungsebene eskaliert werden mussten', formula:'(Eskalationen / Pr\u00FCfungen) \u00D7 100', unit:'%', source:'Exportfreigabe-/Screening-System, Ticket-/Workflow-Tool', owner:'Exportkontrollbeauftragter', freq:'Quartalsweise', legal:'BAFA-ICP-Leitlinie Kap. 2.8',
+        inputs:['Anzahl Eskalationen','Anzahl Pr\u00FCfungen'], placeholders:['z.B. 3','z.B. 200'],
+        hints:['Pr\u00FCfungen, die an h\u00F6here Instanz eskaliert wurden','Gesamtzahl durchgef\u00FChrter Exportkontrollpr\u00FCfungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:2,yellow:5}, invertedScale:true,
+        measures:{green:['Entscheidungskriterien als Best Practice dokumentieren','Eskalationsmatrix optimieren'],yellow:['Eskalationsgr\u00FCnde analysieren','Pr\u00FCfen ob Entscheidungskompetenz delegiert werden kann'],red:['Eskalationsprozess grundlegend \u00FCberpr\u00FCfen','Zust\u00E4ndigkeiten und Kompetenzen kl\u00E4ren','Schulungen f\u00FCr Entscheidungstr\u00E4ger']}
+      },
+      { id:'ao4', name:'Reaktionszeit bei Compliance-Vorf\u00E4llen', desc:'Durchschnittliche Zeit von der Erkennung eines Compliance-Vorfalls bis zur ersten Reaktionsma\u00DFnahme', formula:'Summe Reaktionszeiten / Anzahl Vorf\u00E4lle', unit:'Tage', source:'Incident-Register, Compliance-Tool, Protokolle von Vorfallsbesprechungen', owner:'Head of Trade Compliance', freq:'Pro Vorfall / Quartalsweise', legal:'BAFA-ICP-Leitlinie Kap. 2.8',
+        inputs:['Summe aller Reaktionszeiten (Tage)','Anzahl Vorf\u00E4lle'], placeholders:['z.B. 9','z.B. 3'],
+        hints:['Summe der Tage von Erkennung bis Erstreaktion f\u00FCr alle Vorf\u00E4lle','Gesamtzahl der Compliance-Vorf\u00E4lle im Zeitraum'],
+        calc: v => v[0]/v[1], thresholds:{green:3,yellow:7}, invertedScale:true,
+        measures:{green:['Reaktionsstandard beibehalten','Reaktionsprozeduren dokumentieren'],yellow:['Eskalationswege optimieren','Klare Zust\u00E4ndigkeiten definieren'],red:['Sofort: alle offenen Vorf\u00E4lle priorisieren','Dedizierten Incident-Manager benennen','Risiko: verz\u00F6gerte Reaktion erh\u00F6ht Haftung']}
+      }
+    ]
+  },
+  {
+    id: 'oe', name: 'Operative Exzellenz & Qualit\u00E4t', nameKey: 'persp2',
+    kpis: [
+      { id:'oe1', name:'Vollst\u00E4ndigkeit der Endverbleibserkl\u00E4rungen (EVEs)', desc:'Anteil der erforderlichen Endverbleibserkl\u00E4rungen, die vollst\u00E4ndig und korrekt vorliegen', formula:'(Vollst\u00E4ndige EVEs / Erforderliche EVEs) \u00D7 100', unit:'%', source:'Genehmigungsakten, DMS, BAFA-Antragsunterlagen', owner:'Exportkontrollbeauftragter', freq:'Pro Antrag / Quartalsweise', legal:'Dual-Use-VO, BAFA-Merkbl\u00E4tter',
+        inputs:['Vollst\u00E4ndige EVEs','Erforderliche EVEs'], placeholders:['z.B. 48','z.B. 50'],
+        hints:['Anzahl korrekt und vollst\u00E4ndig ausgef\u00FCllter EVEs','Gesamtzahl der erforderlichen EVEs im Zeitraum'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:85},
+        measures:{green:['Dokumentationsqualit\u00E4t beibehalten','Als Audit-Evidenz archivieren'],yellow:['L\u00FCcken im EVE-Prozess analysieren','Checkliste f\u00FCr Vollst\u00E4ndigkeit implementieren'],red:['EVE-Prozess grundlegend \u00FCberarbeiten','Schulung f\u00FCr verantwortliche Mitarbeitende','Quality Gate vor Einreichung implementieren']}
+      },
+      { id:'oe2', name:'R\u00FCcklaufquote Lieferantenerkl\u00E4rungen', desc:'Anteil der angeforderten Lieferantenerkl\u00E4rungen, die fristgerecht zur\u00FCcklaufen', formula:'(Fristgerechte R\u00FCckl\u00E4ufe / Angeforderte Erkl\u00E4rungen) \u00D7 100', unit:'%', source:'Ursprungs-/Pr\u00E4ferenzmodul (z.B. SAP GTS), Lieferantenportal', owner:'Trade Compliance / Ursprungsmanagement', freq:'Quartalsweise', legal:'UZK, Del. VO 2015/2446 und DurchfVO 2015/2447',
+        inputs:['Fristgerechte R\u00FCckl\u00E4ufe','Angeforderte Erkl\u00E4rungen'], placeholders:['z.B. 85','z.B. 100'],
+        hints:['Anzahl innerhalb der Frist erhaltener Lieferantenerkl\u00E4rungen','Gesamtzahl der angeforderten Erkl\u00E4rungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:90,yellow:75},
+        measures:{green:['Lieferantenbeziehungen proaktiv pflegen','Erinnerungsprozess automatisieren'],yellow:['Eskalation bei s\u00E4umigen Lieferanten','Erkl\u00E4rungsformulare vereinfachen'],red:['Entgangene Pr\u00E4ferenzen quantifizieren','Lieferantenmanagement-Prozess aufbauen','Alternative Ursprungsnachweise pr\u00FCfen']}
+      },
+      { id:'oe3', name:'Anteil automatisierter Verfahren', desc:'Anteil der vollautomatisiert abgewickelten Zollanmeldungen', formula:'(Vollautomatisierte Anmeldungen / Gesamtanzahl Anmeldungen) \u00D7 100', unit:'%', source:'Zoll-/GTS-System, ERP', owner:'IT / Prozessverantwortlicher', freq:'Quartalsweise', legal:'Art. 6, 38, 39 UZK',
+        inputs:['Vollautomatisierte Anmeldungen','Gesamtanzahl Anmeldungen'], placeholders:['z.B. 700','z.B. 1000'],
+        hints:['Anmeldungen die ohne manuelle Eingriffe verarbeitet wurden','Gesamtzahl aller Zollanmeldungen im Zeitraum'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:70,yellow:50},
+        measures:{green:['N\u00E4chste Automatisierungsstufe evaluieren (KI, RPA)','Ausnahme-Handling optimieren'],yellow:['Manuelle Prozesse identifizieren und priorisieren','System-Customizing pr\u00FCfen'],red:['Digitalisierungs-Roadmap erstellen','Standardvorg\u00E4nge zuerst automatisieren','Business Case f\u00FCr Systemintegration']}
+      },
+      { id:'oe4', name:'Dokumentationsgenauigkeit', desc:'Anteil der zollrelevanten Unterlagen, die bei Pr\u00FCfung korrekt und vollst\u00E4ndig sind', formula:'(Korrekte Dokumentationen / Gepr\u00FCfte Vorg\u00E4nge) \u00D7 100', unit:'%', source:'Archiv-/DMS-System, Stichprobenprotokolle, interne Audits', owner:'Teamlead Zollabwicklung', freq:'Quartalsweise', legal:'Art. 15, 163 UZK; BAFA-ICP-Leitlinie',
+        inputs:['Korrekte Dokumentationen','Gepr\u00FCfte Vorg\u00E4nge'], placeholders:['z.B. 196','z.B. 200'],
+        hints:['Anzahl bei Stichprobe/Audit als korrekt bewerteter Dokumente','Gesamtzahl der gepr\u00FCften Vorg\u00E4nge/Dokumente'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:98,yellow:90},
+        measures:{green:['Qualit\u00E4tsstandard halten','Als Audit-Evidenz nutzen'],yellow:['Fehlertypen analysieren','Checklisten implementieren'],red:['Pflicht-Qualit\u00E4tspr\u00FCfung f\u00FCr alle Dokumente','Schulungsinitiative starten','Dokumentenvorlagen \u00FCberarbeiten']}
+      },
+      { id:'oe5', name:'ATLAS-R\u00FCckgabequote (Export)', desc:'Anteil der Ausfuhranmeldungen mit R\u00FCckgabe-/Fehlermeldungen durch ATLAS', formula:'(Fehlermeldungen / Gesamtanzahl Ausfuhranmeldungen) \u00D7 100', unit:'%', source:'ATLAS-Statistiken, Zollsoftware-Logs, Ausfuhrarchiv', owner:'Teamlead Zollabwicklung', freq:'Monatlich', legal:'Art. 15 UZK',
+        inputs:['Fehlermeldungen','Gesamtanzahl Ausfuhranmeldungen'], placeholders:['z.B. 12','z.B. 1000'],
+        hints:['Anzahl von ATLAS zur\u00FCckgewiesener/beanstandeter Meldungen','Gesamtzahl der eingereichten Ausfuhranmeldungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:1.5,yellow:3}, invertedScale:true,
+        measures:{green:['Niedrige Fehlerrate beibehalten','Als Qualit\u00E4tsnachweis dokumentieren'],yellow:['Fehlertypen systematisch analysieren','Gezielte Schulungen durchf\u00FChren'],red:['4-Augen-Prinzip einf\u00FChren','Stammdaten-Audit durchf\u00FChren','Validierungsregeln \u00FCberpr\u00FCfen']}
+      },
+      { id:'oe6', name:'Zollvorg\u00E4nge pro Mitarbeiter', desc:'Anzahl der Zollanmeldungen je FTE im Zollbereich pro Jahr', formula:'Gesamtanzahl Zollanmeldungen / Anzahl FTE im Zollbereich', unit:'Vorg\u00E4nge/FTE', source:'Zoll-/GTS-System, HR-/FTE-Planung', owner:'Head of Trade Compliance', freq:'J\u00E4hrlich', legal:'Art. 39 lit. a) UZK; AEO-Kriterien',
+        inputs:['Gesamtanzahl Zollanmeldungen','Anzahl FTE im Zollbereich'], placeholders:['z.B. 6000','z.B. 5'],
+        hints:['Alle Import-/Exportanmeldungen im Jahr','Vollzeit\u00E4quivalente im Zollteam'],
+        calc: v => v[0]/v[1], thresholds:{green:1500,yellow:2000}, invertedScale:true,
+        measures:{green:['Effizienz-Benchmark dokumentieren','Weitere Automatisierung evaluieren'],yellow:['Arbeitsverteilung pr\u00FCfen','Kapazit\u00E4tsengp\u00E4sse identifizieren'],red:['Personalmodell \u00FCberpr\u00FCfen','Outsourcing-Optionen bewerten','Prozessoptimierung beschleunigen']}
+      },
+      { id:'oe7', name:'Durchschnittliche Abfertigungsdauer', desc:'Mittlere Bearbeitungszeit vom Eingang der Unterlagen bis zur Zollfreigabe', formula:'Summe der Abfertigungsdauer / Anzahl Zollanmeldungen', unit:'Stunden', source:'GTS-/Zollsystem, ATLAS-Statuszeiten, ggf. TMS', owner:'Teamlead Zollabwicklung', freq:'Monatlich', legal:'Art. 188 UZK; WTO Trade Facilitation Agreement',
+        inputs:['Summe Abfertigungsdauer (Std.)','Anzahl Zollanmeldungen'], placeholders:['z.B. 480','z.B. 100'],
+        hints:['Gesamte Bearbeitungszeit aller Vorg\u00E4nge in Stunden','Anzahl der Zollanmeldungen im Messzeitraum'],
+        calc: v => v[0]/v[1], thresholds:{green:24,yellow:48}, invertedScale:true,
+        measures:{green:['Prozess als Benchmark dokumentieren','Weiter optimieren'],yellow:['Engpassanalyse durchf\u00FChren','Vorab-Anmeldungen pr\u00FCfen'],red:['Prozess-Reengineering','Systemschnittstellen optimieren','Vereinfachte Verfahren evaluieren']}
+      },
+      { id:'oe8', name:'Automatisierungsgrad Exportfreigabe', desc:'Anteil der automatisiert erteilten Exportfreigaben', formula:'(Automatisierte Freigaben / Gesamtfreigaben) \u00D7 100', unit:'%', source:'Exportkontroll-/Screening-System, ERP-Logs', owner:'IT / Exportkontrollbeauftragter', freq:'Quartalsweise', legal:'Art. 6 UZK; ICP-Anforderungen',
+        inputs:['Automatisierte Freigaben','Gesamtfreigaben'], placeholders:['z.B. 350','z.B. 500'],
+        hints:['Exportfreigaben die automatisch (ohne manuellen Eingriff) erteilt wurden','Gesamtzahl aller Exportfreigaben'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:70,yellow:50},
+        measures:{green:['KI-/ML-basierte Automatisierung evaluieren','Rule-Engine optimieren'],yellow:['Gr\u00FCnde f\u00FCr manuelle Freigaben identifizieren','Automatisierungsregeln erweitern'],red:['Automatisierungs-Roadmap erstellen','Standardregeln zuerst implementieren','Business Case f\u00FCr System-Upgrade']}
+      }
+    ]
+  },
+  {
+    id: 'rc', name: 'Rechtssicherheit & Compliance', nameKey: 'persp3',
+    kpis: [
+      { id:'rc1', name:'Anzahl Compliance-Vorf\u00E4lle / Selbstanzeigen', desc:'Anzahl festgestellter Compliance-Vorf\u00E4lle oder Selbstanzeigen, relativ je 1.000 Ausfuhren', formula:'(Vorf\u00E4lle / Gesamtausfuhren) \u00D7 1.000', unit:'\u2030', source:'Compliance-/Rechtsabteilung, Melderegister, Beh\u00F6rdenkorrespondenz', owner:'Head of Trade Compliance', freq:'Quartalsweise', legal:'\u00A7 22 AWG, BAFA-Leitlinien, ICP-Anforderungen',
+        inputs:['Anzahl Vorf\u00E4lle/Selbstanzeigen','Gesamtanzahl Ausfuhren'], placeholders:['z.B. 2','z.B. 5000'],
+        hints:['Compliance-Vorf\u00E4lle und Selbstanzeigen im Zeitraum','Gesamtzahl der Ausfuhrvorg\u00E4nge im selben Zeitraum'],
+        calc: v => (v[0]/v[1])*1000, thresholds:{green:0.5,yellow:2}, invertedScale:true,
+        measures:{green:['Compliance-Kultur st\u00E4rken','Pr\u00E4vention beibehalten'],yellow:['Vorfalltypen kategorisieren','Gezielte Schulungen ableiten'],red:['Root-Cause-Analyse aller Vorf\u00E4lle','CAPA-Prozess implementieren','Pr\u00FCfen: Selbstanzeige erforderlich?']}
+      },
+      { id:'rc2', name:'Quote korrekt klassifizierter G\u00FCter', desc:'Anteil der bei Stichproben/Audits als korrekt bewerteten Zolltarifnummern', formula:'(Korrekte Zolltarifnummern / Gepr\u00FCfte Nummern) \u00D7 100', unit:'%', source:'GTS-/Zollsystem, ERP-Stammdaten', owner:'Tarifierungsspezialist', freq:'Quartalsweise', legal:'Art. 15 UZK, Zolltarifrecht',
+        inputs:['Korrekte Zolltarifnummern','Gepr\u00FCfte Nummern'], placeholders:['z.B. 96','z.B. 100'],
+        hints:['Bei Pr\u00FCfung als korrekt eingestufte Warennummern','Gesamtzahl der gepr\u00FCften Tarifnummern'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:85},
+        measures:{green:['Tarifierungs-Dokumentation pflegen','KI-gest\u00FCtzte Tarifierung evaluieren'],yellow:['Fehlercluster analysieren','vZTA f\u00FCr Kernprodukte beantragen'],red:['Tarifierungs-Audit aller aktiven Nummern','CoE f\u00FCr Tarifierung aufbauen','Externe Expertise einbeziehen']}
+      },
+      { id:'rc3', name:'Anzahl Zolltarif\u00E4nderungen mit Relevanz', desc:'Anzahl der Zolltarif\u00E4nderungen im Zeitraum, die f\u00FCr das eigene Produktportfolio relevant sind', formula:'Absolute Anzahl relevanter \u00C4nderungen', unit:'Anzahl', source:'TARIC-/Zolltarif-Updates, interne Change-Logs, GTS-System', owner:'Tarifierungsspezialist', freq:'Quartalsweise', legal:'UZK, TARIC-/HS-\u00C4nderungen',
+        inputs:['Anzahl relevanter Zolltarif\u00E4nderungen'], placeholders:['z.B. 12'],
+        hints:['Tarif\u00E4nderungen die Ihr Produktportfolio betreffen'],
+        calc: v => v[0], thresholds:{green:100,yellow:100}, customEval: () => 'green',
+        measures:{green:['\u00DCberwachungsprozess funktioniert gut','Auswirkungen dokumentieren'],yellow:['\u00DCberwachungsfrequenz pr\u00FCfen','Zeitnahe Stammdatenaktualisierung sicherstellen'],red:['Systematisches Tarif-Monitoring aufbauen','Klare Zust\u00E4ndigkeiten zuweisen','\u00C4nderungsbenachrichtigungen automatisieren']}
+      },
+      { id:'rc4', name:'Konsistenzquote bei Ursprungserkl\u00E4rungen', desc:'Anteil der Ursprungserkl\u00E4rungen, die korrekt und konsistent sind', formula:'(Korrekte Erkl\u00E4rungen / Gesamtzahl) \u00D7 100', unit:'%', source:'Ursprungsdatenbank, Stichprobenkontrollen, R\u00FCckmeldungen', owner:'Trade Compliance / Ursprungsmanagement', freq:'Quartalsweise', legal:'Pr\u00E4ferenzabkommen, UZK, DurchfVO',
+        inputs:['Korrekte Erkl\u00E4rungen','Gesamtzahl Erkl\u00E4rungen'], placeholders:['z.B. 195','z.B. 200'],
+        hints:['Als korrekt und konsistent bewertete Ursprungserkl\u00E4rungen','Gesamtzahl aller gepr\u00FCften Ursprungserkl\u00E4rungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:97,yellow:90},
+        measures:{green:['Qualit\u00E4tsstandard halten','Als Audit-Evidenz archivieren'],yellow:['Fehlermuster analysieren','Lieferantenverifizierung st\u00E4rken'],red:['Systematische Qualit\u00E4tspr\u00FCfungen einf\u00FChren','Schulung f\u00FCr Ursprungsteam','Kalkulationsmethodik \u00FCberpr\u00FCfen']}
+      },
+      { id:'rc5', name:'Fehlerquote bei Zollanmeldungen', desc:'Anteil der Zollanmeldungen mit Beanstandungen oder Fehlern seitens des Zolls', formula:'(Beanstandete Anmeldungen / Gesamtanzahl Anmeldungen) \u00D7 100', unit:'%', source:'Zollpr\u00FCfungsberichte, interne QS, ATLAS-R\u00FCckmeldungen', owner:'Teamlead Zollabwicklung', freq:'Monatlich', legal:'Art. 15 UZK',
+        inputs:['Beanstandete Anmeldungen','Gesamtanzahl Anmeldungen'], placeholders:['z.B. 5','z.B. 1000'],
+        hints:['Vom Zoll beanstandete oder korrigierte Anmeldungen','Gesamtzahl aller Zollanmeldungen im Zeitraum'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:1,yellow:3}, invertedScale:true,
+        measures:{green:['Qualit\u00E4tsstandard halten','Automatische Validierung beibehalten'],yellow:['Fehlertypen analysieren','Schulungsbedarf ableiten'],red:['4-Augen-Prinzip einf\u00FChren','Stammdaten-Audit','Prozessautomatisierung beschleunigen']}
+      },
+      { id:'rc6', name:'R\u00FCckgabequote (ATLAS)', desc:'Anteil der Zollanmeldungen mit R\u00FCckgabe durch das ATLAS-System aufgrund formaler/inhaltlicher Fehler', formula:'(Anzahl R\u00FCckgaben / Gesamtanzahl Anmeldungen) \u00D7 100', unit:'%', source:'ATLAS-Protokolle, Zollsoftware, Auswertungen der Zollstelle', owner:'Teamlead Zollabwicklung', freq:'Monatlich', legal:'Art. 15 UZK, AEO-Kriterien',
+        inputs:['Anzahl R\u00FCckgaben','Gesamtanzahl Anmeldungen'], placeholders:['z.B. 15','z.B. 1000'],
+        hints:['Vom ATLAS-System zur\u00FCckgegebene Anmeldungen','Gesamtzahl eingereichter Anmeldungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:2,yellow:5}, invertedScale:true,
+        measures:{green:['Niedrige R\u00FCckgabequote halten','Als Qualit\u00E4tsnachweis dokumentieren'],yellow:['R\u00FCckgabegr\u00FCnde kategorisieren','Gezielte Mitarbeiterschulungen'],red:['Pflichtvalidierung implementieren','Stammdatenqualit\u00E4t pr\u00FCfen','Systemkonfiguration optimieren']}
+      },
+      { id:'rc7', name:'Trefferquote bei Sanktionslistenpr\u00FCfungen', desc:'Anteil der Screening-Pr\u00FCfungen mit Treffern, die manuelle Nachpr\u00FCfung erfordern', formula:'(Treffer / Durchgef\u00FChrte Pr\u00FCfungen) \u00D7 100', unit:'%', source:'Screening-Tool, Exportfreigabesystem', owner:'Exportkontrollbeauftragter', freq:'Monatlich', legal:'EU-Sanktionsverordnungen, AWG/AWV',
+        inputs:['Anzahl Treffer','Anzahl Pr\u00FCfungen'], placeholders:['z.B. 50','z.B. 5000'],
+        hints:['Screening-Treffer die manuell nachgepr\u00FCft werden mussten','Gesamtzahl der durchgef\u00FChrten Screening-Pr\u00FCfungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:100,yellow:100}, customEval: val => val > 5 ? 'red' : val > 2 ? 'yellow' : 'green',
+        measures:{green:['Screening-Konfiguration ist gut kalibriert','Regelm\u00E4\u00DFige Listenaktualisierung best\u00E4tigt'],yellow:['Fuzzy-Logic-Parameter optimieren','Whitelist f\u00FCr verifizierte Partner pflegen'],red:['Screening-Algorithmus kalibrieren','Kosten manueller Nachpr\u00FCfung quantifizieren','KI-basiertes Screening evaluieren']}
+      },
+      { id:'rc8', name:'Quote genehmigungspflichtiger Ausfuhren', desc:'Anteil der Exporte, die einer Ausfuhrgenehmigung bed\u00FCrfen', formula:'(Genehmigungspflichtige Ausfuhren / Gesamtausfuhren) \u00D7 100', unit:'%', source:'BAFA-Antragsliste, Exportkontrollsystem, ERP', owner:'Exportkontrollbeauftragter', freq:'Quartalsweise', legal:'EU-Dual-Use-VO 2021/821, AWG \u00A7 8, BAFA-Leitlinien',
+        inputs:['Genehmigungspflichtige Ausfuhren','Gesamtausfuhren'], placeholders:['z.B. 50','z.B. 1000'],
+        hints:['Ausfuhren die einer BAFA-Genehmigung bed\u00FCrfen','Gesamtzahl aller Ausfuhrvorg\u00E4nge'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:100,yellow:100}, customEval: () => 'green',
+        measures:{green:['Quote im erwarteten Bereich','Genehmigungsprozess ist effizient'],yellow:['Pr\u00FCfen ob sich Quote unerwartet ver\u00E4ndert hat','Produktklassifizierung reviewen'],red:['Klassifizierung aller Exportg\u00FCter verifizieren','Regulatory Changes pr\u00FCfen','Kunden-/Zielland-Risiko bewerten']}
+      }
+    ]
+  },
+  {
+    id: 'rk', name: 'Regulatorische Kommunikation', nameKey: 'persp4',
+    kpis: [
+      { id:'rk1', name:'Dual-Use-G\u00FCter-Anteil', desc:'Anteil der exportierten G\u00FCter, die als Dual-Use klassifiziert sind', formula:'(Dual-Use-G\u00FCter / Exportierte G\u00FCter) \u00D7 100', unit:'%', source:'Produktstamm mit Dual-Use-Kennzeichnung, ECCN-/AL-Nummern', owner:'Exportkontrollbeauftragter', freq:'Quartalsweise', legal:'VO (EU) 2021/821 (Dual-Use-VO)',
+        inputs:['Dual-Use-G\u00FCter','Exportierte G\u00FCter gesamt'], placeholders:['z.B. 120','z.B. 1000'],
+        hints:['Anzahl als Dual-Use klassifizierter exportierter Positionen','Gesamtzahl exportierter G\u00FCterpositionen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:100,yellow:100}, customEval: () => 'green',
+        measures:{green:['Quote ist im erwarteten Bereich','Klassifizierung ist aktuell'],yellow:['Pr\u00FCfen ob Portfolio sich ver\u00E4ndert hat','Auf neue Listeneintr\u00E4ge pr\u00FCfen'],red:['Vollst\u00E4ndiges Produktportfolio-Review','Alle Klassifizierungen aktualisieren','Externe Klassifizierungsunterst\u00FCtzung einbeziehen']}
+      },
+      { id:'rk2', name:'Exportverweigerungsquote', desc:'Anteil der nach Screening/Pr\u00FCfung verweigerten Exportvorg\u00E4nge', formula:'(Verweigerte Exporte / Gesamtpr\u00FCfungen) \u00D7 100', unit:'%', source:'Exportfreigabesystem, Entscheidungsmatrix', owner:'Exportkontrollbeauftragter', freq:'Quartalsweise', legal:'AWG \u00A7 8, ICP-Richtlinien',
+        inputs:['Verweigerte Exporte','Gesamtpr\u00FCfungen'], placeholders:['z.B. 3','z.B. 500'],
+        hints:['Anzahl endg\u00FCltig abgelehnter Exportvorg\u00E4nge','Gesamtzahl der durchgef\u00FChrten Pr\u00FCfungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:1,yellow:3}, invertedScale:true,
+        measures:{green:['Prozess arbeitet effektiv','Ablehnungsbegr\u00FCndungen dokumentieren'],yellow:['Ablehnungsmuster analysieren','Kundenrisikoprofile reviewen'],red:['Screening-Kriterien \u00FCberpr\u00FCfen','Gesch\u00E4ftspartnerrisiken bewerten','Vorab-Pr\u00FCfprozesse st\u00E4rken']}
+      },
+      { id:'rk3', name:'Exportvolumen in Embargol\u00E4nder', desc:'Anteil des Gesamtexportwerts, der in L\u00E4nder unter Embargo/Sanktionen geht', formula:'(Exportwert Embargol\u00E4nder / Gesamtexportwert) \u00D7 100', unit:'%', source:'ERP (L\u00E4nderstatistik), L\u00E4nderrisikoberichte', owner:'Head of Trade Compliance', freq:'Quartalsweise', legal:'EU-Embargoregelungen, AWG \u00A7 17',
+        inputs:['Exportwert Embargol\u00E4nder (EUR)','Gesamtexportwert (EUR)'], placeholders:['z.B. 500000','z.B. 50000000'],
+        hints:['Exportwert in sanktionierte/embargo-belegte L\u00E4nder','Gesamter Exportwert im Zeitraum'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:100,yellow:100}, customEval: val => val > 5 ? 'red' : val > 1 ? 'yellow' : 'green',
+        measures:{green:['Monitoring funktioniert gut','Risiko wird gemanagt'],yellow:['L\u00E4nderrisikobewertung \u00FCberpr\u00FCfen','Auf neue Sanktionen pr\u00FCfen'],red:['Sofortige \u00DCberpr\u00FCfung aller Embargo-Transaktionen','Alle Genehmigungen und Ausnahmen verifizieren','Eskalation an Gesch\u00E4ftsleitung']}
+      },
+      { id:'rk4', name:'Anzahl BAFA-Genehmigungsr\u00FCckfragen', desc:'Anteil der Ausfuhrgenehmigungsantr\u00E4ge mit R\u00FCckfragen/Nachforderungen durch das BAFA', formula:'(R\u00FCckfragen / Antr\u00E4ge) \u00D7 100', unit:'%', source:'BAFA-Korrespondenz, Genehmigungsakten', owner:'Exportkontrollbeauftragter', freq:'Pro Antrag / J\u00E4hrlich', legal:'AWG/AWV, BAFA-Verfahren',
+        inputs:['Anzahl BAFA-R\u00FCckfragen','Anzahl Antr\u00E4ge'], placeholders:['z.B. 2','z.B. 20'],
+        hints:['R\u00FCckfragen/Nachforderungen des BAFA zu Ihren Antr\u00E4gen','Gesamtzahl gestellter Genehmigungsantr\u00E4ge'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:10,yellow:25}, invertedScale:true,
+        measures:{green:['Antragsqualit\u00E4t ist hoch','Vorbereitungsstandards beibehalten'],yellow:['R\u00FCckfragegr\u00FCnde analysieren','Antragsdokumentation verbessern'],red:['Antragsprozess grundlegend \u00FCberarbeiten','Interne Qualit\u00E4tspr\u00FCfung vor Einreichung','Schulung f\u00FCr Antragsteller']}
+      },
+      { id:'rk5', name:'Bearbeitungsdauer Ausfuhrantr\u00E4ge', desc:'Durchschnittliche Bearbeitungsdauer f\u00FCr Ausfuhrgenehmigungsantr\u00E4ge (Einreichung bis Bescheid)', formula:'Summe Bearbeitungszeit / Anzahl Antr\u00E4ge', unit:'Tage', source:'Antrags\u00FCbersicht, BAFA-Bescheide, interne Zeitstempel', owner:'Exportkontrollbeauftragter', freq:'Pro Antrag / J\u00E4hrlich', legal:'BAFA-Verfahren',
+        inputs:['Summe Bearbeitungszeit (Tage)','Anzahl Antr\u00E4ge'], placeholders:['z.B. 900','z.B. 20'],
+        hints:['Summe der Tage von Einreichung bis Bescheid f\u00FCr alle Antr\u00E4ge','Gesamtzahl der Antr\u00E4ge im Zeitraum'],
+        calc: v => v[0]/v[1], thresholds:{green:45,yellow:90}, invertedScale:true,
+        measures:{green:['Bearbeitungszeit im Rahmen','Timeline an Business kommunizieren'],yellow:['Pr\u00FCfen ob Komplexit\u00E4t gestiegen ist','Vorabkl\u00E4rungen mit BAFA vorbereiten'],red:['Ursachen f\u00FCr Verz\u00F6gerungen analysieren','Antragsqualit\u00E4t verbessern','Informelle Vorabkl\u00E4rung erw\u00E4gen']}
+      },
+      { id:'rk6', name:'Exportblockadequote', desc:'Anteil der Exportlieferungen, die durch interne Compliance-Pr\u00FCfungen blockiert wurden', formula:'(Blockierte Lieferungen / Exportierte Lieferungen) \u00D7 100', unit:'%', source:'ERP-/GTS-Sperrprotokolle, Versand- und Auftragsstatus', owner:'Exportkontrollbeauftragter', freq:'Monatlich', legal:'Internes ICP, Sperrlogik im ERP',
+        inputs:['Blockierte Lieferungen','Exportierte Lieferungen gesamt'], placeholders:['z.B. 5','z.B. 1000'],
+        hints:['Durch interne Compliance-Pr\u00FCfung gesperrte Lieferungen','Gesamtzahl der Exportlieferungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:1,yellow:3}, invertedScale:true,
+        measures:{green:['Blockade-Prozess funktioniert korrekt','Niedrige False-Positive-Rate'],yellow:['Blockadegr\u00FCnde analysieren','Blockade-Regeln optimieren'],red:['Blockade-Kriterien \u00FCberpr\u00FCfen','Auswirkungen auf Lieferperformance bewerten','Screening-Konfiguration optimieren']}
+      }
+    ]
+  },
+  {
+    id: 'za', name: 'Zollwert & Abgabenmanagement', nameKey: 'persp5',
+    kpis: [
+      { id:'za1', name:'Anzahl Zollanmeldungen (Import/Export)', desc:'Gesamtanzahl aller Import- und Export-Zollanmeldungen je Zeitraum', formula:'Import-Anmeldungen + Export-Anmeldungen', unit:'Anzahl', source:'Zoll-/GTS-System, ATLAS-Statistiken, Dienstleisterreports', owner:'Teamlead Zollabwicklung', freq:'Monatlich', legal:'Art. 5 Nr. 12 i.V.m. Art. 162-188 UZK',
+        inputs:['Import-Anmeldungen','Export-Anmeldungen'], placeholders:['z.B. 3000','z.B. 2500'],
+        hints:['Anzahl aller Importanmeldungen im Zeitraum','Anzahl aller Exportanmeldungen im Zeitraum'],
+        calc: v => v[0]+v[1], thresholds:{green:100000,yellow:100000}, customEval: () => 'green',
+        measures:{green:['Volumen ist stabil und beherrschbar','Kapazit\u00E4tsplanung ist angemessen'],yellow:['Pr\u00FCfen ob Volumenwachstum Ressourcen erfordert','Dienstleisterkapazit\u00E4t pr\u00FCfen'],red:['Personalplanung anpassen','Automatisierungspotenzial evaluieren','Prozesskapazit\u00E4t reviewen']}
+      },
+      { id:'za2', name:'Unterlagen-R\u00FCckmeldequote', desc:'Anteil der fristgerecht erhaltenen Unterlagen-R\u00FCckmeldungen von internen/externen Stakeholdern', formula:'(Fristgerechte R\u00FCckmeldungen / Ben\u00F6tigte R\u00FCckmeldungen) \u00D7 100', unit:'%', source:'Dokumentenanforderungslisten, Workflow-Tool, E-Mail-Tracking', owner:'Trade Compliance Manager', freq:'Monatlich', legal:'Art. 15 UZK, \u00A7 8 AWV',
+        inputs:['Fristgerechte R\u00FCckmeldungen','Ben\u00F6tigte R\u00FCckmeldungen'], placeholders:['z.B. 190','z.B. 200'],
+        hints:['Innerhalb der Frist eingegangene R\u00FCckmeldungen','Gesamtzahl der angeforderten Unterlagen/R\u00FCckmeldungen'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:80},
+        measures:{green:['R\u00FCckmeldeprozess funktioniert gut','Stakeholder-Beziehungen pflegen'],yellow:['Bei s\u00E4umigen Parteien eskalieren','Anfrageprozess vereinfachen'],red:['Automatisiertes Tracking implementieren','SLAs mit Stakeholdern definieren','Eskalationsprozess an Management']}
+      },
+      { id:'za3', name:'Abgabenquote (Duty Ratio)', desc:'Verh\u00E4ltnis der gezahlten Zollabgaben zum Gesamtwert der eingef\u00FChrten Waren', formula:'(Summe Abgaben / Gesamtwert eingef\u00FChrter Waren) \u00D7 100', unit:'%', source:'Zollabgabenbescheide, Finanzbuchhaltung, Zollwert-Reports', owner:'Head of Trade Compliance / Finance', freq:'Quartalsweise', legal:'Art. 70-75, 85 UZK',
+        inputs:['Summe Abgaben (EUR)','Gesamtwert eingef\u00FChrter Waren (EUR)'], placeholders:['z.B. 500000','z.B. 20000000'],
+        hints:['Gesamt gezahlte Zollabgaben in EUR','Gesamter Warenwert aller Importe in EUR'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:100,yellow:100}, customEval: () => 'green',
+        measures:{green:['Quote ist optimiert','Optimierungsma\u00DFnahmen dokumentieren'],yellow:['Auf ungenutzte Pr\u00E4ferenzen pr\u00FCfen','Hochverzollte Warengruppen analysieren'],red:['Umfassende Abgabenoptimierung durchf\u00FChren','Sonderverfahren evaluieren','Zolloptimierungs-Expertise einbeziehen']}
+      },
+      { id:'za4', name:'Pr\u00E4ferenznutzungsquote', desc:'Anteil der pr\u00E4ferenzf\u00E4higen Sendungen, bei denen Pr\u00E4ferenzen tats\u00E4chlich genutzt wurden', formula:'(Genutzte Pr\u00E4ferenzen / Pr\u00E4ferenzf\u00E4hige Sendungen) \u00D7 100', unit:'%', source:'Ursprungs-/Pr\u00E4ferenzmodul, Lieferantenerkl\u00E4rungen, Steuerbescheide', owner:'Trade Compliance / Ursprungsmanagement', freq:'Quartalsweise', legal:'Art. 55-58, 64 UZK; Pr\u00E4ferenzabkommen',
+        inputs:['Genutzte Pr\u00E4ferenzen','Pr\u00E4ferenzf\u00E4hige Sendungen'], placeholders:['z.B. 180','z.B. 200'],
+        hints:['Sendungen bei denen Pr\u00E4ferenzursprung genutzt wurde','Sendungen die grunds\u00E4tzlich pr\u00E4ferenzf\u00E4hig waren'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:95,yellow:80},
+        measures:{green:['Pr\u00E4ferenznutzung ist hoch','Einsparungen an Management kommunizieren'],yellow:['Verpasste Pr\u00E4ferenzen identifizieren','Fehlende Lieferantenerkl\u00E4rungen nachfordern'],red:['Entgangene Einsparungen quantifizieren','Pr\u00E4ferenzmanagement-Prozess aufbauen','Pr\u00E4ferenzbeauftragten benennen']}
+      },
+      { id:'za5', name:'Zolleinsparungen durch Verfahren', desc:'Anteil der ersparten Abgaben durch zollrechtliche Sonderverfahren (z.B. aktive Veredelung, Endverwendung, Zolllager)', formula:'(Eingesparte Abgaben / Theoretisch f\u00E4llige Abgaben) \u00D7 100', unit:'%', source:'Verfahrensabrechnungen, Controlling-Berichte', owner:'Head of Trade Compliance', freq:'Quartalsweise', legal:'Art. 210-225 UZK (Sonderverfahren), Art. 85 UZK',
+        inputs:['Eingesparte Abgaben (EUR)','Theoretisch f\u00E4llige Abgaben (EUR)'], placeholders:['z.B. 200000','z.B. 1500000'],
+        hints:['Durch Sonderverfahren tats\u00E4chlich eingesparte Zollabgaben','Abgaben die ohne Sonderverfahren angefallen w\u00E4ren'],
+        calc: v => (v[0]/v[1])*100, thresholds:{green:10,yellow:5},
+        measures:{green:['Einsparungen sind gut dokumentiert','Wertbeitrag kommunizieren'],yellow:['Zus\u00E4tzliche Verfahrensm\u00F6glichkeiten evaluieren','Pr\u00FCfen ob Einsparpotenzial voll genutzt wird'],red:['Umfassenden Verfahrens-Review durchf\u00FChren','Neue Sonderverfahren erschlie\u00DFen','Business Case f\u00FCr Verfahrensantr\u00E4ge erstellen']}
+      }
+    ]
+  }
+];
+
+// ── Password (Multi-User) ──
+const USERS = {
+  lars:    '3a907ce5dd83a3288755297c6c2c131de2e0e01273a7b935678d0ba8d4a129c4',
+  mladen:  '2d9dff28fb2a11ee54e098a6724949d7753add5b9c7166cfc83d6c7dbc2ba866',
+  tester1: '3006598f50d096cb201b8955a2519c28707b588d54ab034cf857769b8da675a3',
+  tester2: '5e35b2046419212fd2a092bc8c10cae67d099d02d316f223d3dfe897e9d81bde',
+  tester3: '3a51d0889ba58dcd39f8ab4c856607f431f527f7fb40d73f1cf98281f3413747'
+};
+
+async function sha256(str) {
+  const data = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkPassword() {
+  const user = document.getElementById('pwUser').value.trim().toLowerCase();
+  const pass = document.getElementById('pwInput').value;
+  if (!user || !pass) {
+    document.getElementById('pwError').textContent = translations[currentLanguage].pw_error;
+    return;
+  }
+  const hash = await sha256(pass);
+  if (USERS[user] && USERS[user] === hash) {
+    sessionStorage.setItem('tkpi_auth', 'granted');
+    sessionStorage.setItem('tkpi_user', user);
+    document.getElementById('passwordOverlay').classList.add('hidden');
+    document.body.classList.remove('locked');
+  } else {
+    document.getElementById('pwError').textContent = translations[currentLanguage].pw_error;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkPassword();
+  });
+  document.getElementById('pwUser').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('pwInput').focus();
+  });
+  if (sessionStorage.getItem('tkpi_auth') === 'granted') {
+    document.getElementById('passwordOverlay').classList.add('hidden');
+    document.body.classList.remove('locked');
+  }
+  const savedLang = sessionStorage.getItem('tkpi_lang');
+  if (savedLang) currentLanguage = savedLang;
+  setLanguage(currentLanguage);
+  renderPillars();
+  renderWhyCards();
+  renderPerspectiveTabs();
+  loadPerspective(0);
+  renderDashboard();
+});
+
+// ── Language ──
+function setLanguage(lang) {
+  currentLanguage = lang;
+  sessionStorage.setItem('tkpi_lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()));
+  const t = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t[key]) el.placeholder = t[key];
+  });
+  renderPillars();
+  renderWhyCards();
+  renderPerspectiveTabs();
+  const activeTab = document.querySelector('.perspective-tab.active');
+  if (activeTab) {
+    const idx = parseInt(activeTab.dataset.idx);
+    loadPerspective(idx);
+  }
+  renderDashboard();
+}
+
+// ── Navigation ──
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach((n, i) => {
+    const pages = ['home','kpis','dashboard','authors','contact'];
+    n.classList.toggle('active', pages[i] === page);
+  });
+  document.querySelector('.sidebar').classList.remove('open');
+  if (page === 'dashboard' || page === 'home') renderDashboard();
+  window.scrollTo(0, 0);
+}
+
+// ── Pillars ──
+function renderPillars() {
+  const t = translations[currentLanguage];
+  const pillars = [
+    { icon:'\uD83C\uDFE2', titleKey:'pillar1_title', descKey:'pillar1_desc' },
+    { icon:'\u2699\uFE0F', titleKey:'pillar2_title', descKey:'pillar2_desc' },
+    { icon:'\u2696\uFE0F', titleKey:'pillar3_title', descKey:'pillar3_desc' },
+    { icon:'\uD83D\uDCAC', titleKey:'pillar4_title', descKey:'pillar4_desc' },
+    { icon:'\uD83D\uDCB0', titleKey:'pillar5_title', descKey:'pillar5_desc' }
+  ];
+  document.getElementById('pillarGrid').innerHTML = pillars.map((p,i) => `
+    <div class="pillar-card">
+      <div class="pillar-num">${currentLanguage === 'de' ? 'S\u00E4ule' : 'Pillar'} ${i+1}</div>
+      <div class="pillar-icon">${p.icon}</div>
+      <h3>${t[p.titleKey]}</h3>
+      <p>${t[p.descKey]}</p>
+    </div>
+  `).join('');
+}
+
+// ── Why Cards ──
+function renderWhyCards() {
+  const t = translations[currentLanguage];
+  const cards = [
+    { icon:'\uD83C\uDFAF', titleKey:'why1_title', textKey:'why1_text' },
+    { icon:'\uD83E\uDD1D', titleKey:'why2_title', textKey:'why2_text' },
+    { icon:'\u2713', titleKey:'why3_title', textKey:'why3_text' }
+  ];
+  document.getElementById('whyGrid').innerHTML = cards.map(c => `
+    <div class="why-card">
+      <div class="icon">${c.icon}</div>
+      <h3>${t[c.titleKey]}</h3>
+      <p>${t[c.textKey]}</p>
+    </div>
+  `).join('');
+}
+
+// ── Perspective Tabs ──
+function renderPerspectiveTabs() {
+  const t = translations[currentLanguage];
+  document.getElementById('perspectiveTabs').innerHTML = perspectives.map((p, i) => `
+    <button class="perspective-tab${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="loadPerspective(${i})">${t[p.nameKey]}</button>
+  `).join('');
+}
+
+// ── Load Perspective ──
+function loadPerspective(idx) {
+  document.querySelectorAll('.perspective-tab').forEach((t,i) => t.classList.toggle('active', i === idx));
+  const t = translations[currentLanguage];
+  const persp = perspectives[idx];
+  document.getElementById('kpiContainer').innerHTML = persp.kpis.map(kpi => {
+    const ki = kpiInputs(kpi);
+    return `
+    <div class="kpi-card" id="card-${kpi.id}">
+      <div class="kpi-header" onclick="toggleKpi('${kpi.id}')">
+        <div class="kpi-header-left">
+          <div class="kpi-cat">${kpi.id.toUpperCase()}</div>
+          <div class="kpi-name">${kpiT(kpi,'name')}</div>
+        </div>
+        <button class="kpi-toggle" id="toggle-${kpi.id}">${t.calc_open}</button>
+      </div>
+      <div class="kpi-body" id="body-${kpi.id}">
+        <div class="kpi-desc">${kpiT(kpi,'desc')}</div>
+        <div class="kpi-meta">
+          <div class="kpi-meta-item"><div class="kpi-meta-label">${t.lbl_datasource}</div><div class="kpi-meta-value">${kpiT(kpi,'source')}</div></div>
+          <div class="kpi-meta-item"><div class="kpi-meta-label">${t.lbl_owner}</div><div class="kpi-meta-value">${kpiT(kpi,'owner')}</div></div>
+          <div class="kpi-meta-item"><div class="kpi-meta-label">${t.lbl_frequency}</div><div class="kpi-meta-value">${kpiT(kpi,'freq')}</div></div>
+          <div class="kpi-meta-item"><div class="kpi-meta-label">${t.lbl_legal}</div><div class="kpi-meta-value">${kpiT(kpi,'legal')}</div></div>
+        </div>
+        <div class="kpi-formula">
+          <div class="kpi-formula-label">${t.lbl_formula}</div>
+          ${kpiT(kpi,'formula')}
+        </div>
+        <div class="calc-inputs">
+          ${ki.inputs.map((inp, j) => `
+            <div class="calc-input-group">
+              <label>${inp}</label>
+              <input type="number" class="calc-input" id="input-${kpi.id}-${j}" placeholder="${ki.placeholders[j]}" step="any">
+              ${ki.hints[j] ? `<div class="calc-hint">${ki.hints[j]}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        <button class="calc-btn" onclick="calculateKpi('${kpi.id}')">${t.calc_btn}</button>
+        <div class="kpi-result" id="result-${kpi.id}"></div>
+      </div>
+    </div>
+  `}).join('');
+}
+
+function toggleKpi(id) {
+  const body = document.getElementById('body-' + id);
+  const toggle = document.getElementById('toggle-' + id);
+  const t = translations[currentLanguage];
+  const isOpen = body.classList.toggle('open');
+  toggle.textContent = isOpen ? t.calc_close : t.calc_open;
+}
+
+// ── KPI Calculation ──
+function findKpi(id) {
+  for (const p of perspectives) {
+    const kpi = p.kpis.find(k => k.id === id);
+    if (kpi) return { kpi, perspId: p.id, perspName: p.name };
+  }
+  return null;
+}
+
+function evaluateKpi(kpi, value) {
+  if (kpi.customEval) return kpi.customEval(value);
+  if (kpi.invertedScale) {
+    if (value <= kpi.thresholds.green) return 'green';
+    if (value <= kpi.thresholds.yellow) return 'yellow';
+    return 'red';
+  }
+  if (value >= kpi.thresholds.green) return 'green';
+  if (value >= kpi.thresholds.yellow) return 'yellow';
+  return 'red';
+}
+
+function isInvertedKpi(kpi) {
+  return !!kpi.invertedScale;
+}
+
+function formatValue(value, unit) {
+  if (unit === '%' || unit === '\u2030') return value.toFixed(1) + ' ' + unit;
+  if (unit === 'EUR') return Math.round(value).toLocaleString('de-DE') + ' \u20AC';
+  if (unit === 'Faktor') return value.toFixed(2);
+  if (unit === 'Punkte (0-5)') return value.toFixed(1);
+  if (unit === 'Stunden' || unit === 'Werktage' || unit === 'Tage') return value.toFixed(1) + ' ' + unit;
+  if (unit === 'Vorgänge/FTE') return Math.round(value).toLocaleString('de-DE') + ' ' + unit;
+  if (unit === 'Anzahl') return Math.round(value).toLocaleString('de-DE');
+  return value.toFixed(2);
+}
+
+function calculateKpi(id) {
+  const found = findKpi(id);
+  if (!found) return;
+  const { kpi } = found;
+  const t = translations[currentLanguage];
+  const vals = kpi.inputs.map((_, j) => parseFloat(document.getElementById(`input-${id}-${j}`).value));
+  if (vals.some(v => isNaN(v))) return;
+
+  // Division by zero check — all 2-input KPIs use vals[1] as divisor (except za1 which is addition)
+  if (kpi.inputs.length === 2 && kpi.id !== 'za1' && vals[1] === 0) {
+    alert(t.div_zero);
+    return;
+  }
+
+  const result = kpi.calc(vals);
+  const status = evaluateKpi(kpi, result);
+  const statusColors = { green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', red: 'var(--accent-red)' };
+  const badgeLabels = { green: t.badge_green, yellow: t.badge_yellow, red: t.badge_red };
+  const badgeIcons = { green: '\u2713', yellow: '\u26A0', red: '\u2716' };
+  const measures = kpiMeasures(kpi, status);
+
+  document.getElementById(`result-${id}`).innerHTML = `
+    <div class="result-value" style="color:${statusColors[status]}">${formatValue(result, kpi.unit)}</div>
+    <span class="result-badge badge-${status}">${badgeIcons[status]} ${badgeLabels[status]}</span>
+    <div class="measures-box ${status}">
+      <div class="measures-title">${t.lbl_measures}</div>
+      <ul>${measures.map(m => `<li>${m}</li>`).join('')}</ul>
+    </div>
+  `;
+  document.getElementById(`result-${id}`).classList.add('show');
+
+  saveToDashboard(id, result, status, kpi);
+}
+
+// ── Dashboard Storage ──
+function getDashboardData() {
+  try { return JSON.parse(sessionStorage.getItem('tkpi_dashboard') || '{}'); } catch { return {}; }
+}
+
+function saveToDashboard(id, value, status, kpi) {
+  const data = getDashboardData();
+  const prev = data[id];
+  data[id] = {
+    id, value, status,
+    name_de: kpi.name,
+    name_en: (kpiEN[kpi.id] && kpiEN[kpi.id].name) || kpi.name,
+    unit: kpi.unit,
+    invertedScale: !!kpi.invertedScale,
+    perspId: findKpi(id).perspId,
+    perspName: findKpi(id).perspName,
+    prevValue: prev ? prev.value : null,
+    timestamp: new Date().toISOString(),
+    measures_de: kpi.measures[status],
+    measures_en: (kpiEN[kpi.id] && kpiEN[kpi.id].measures && kpiEN[kpi.id].measures[status]) || kpi.measures[status]
+  };
+  sessionStorage.setItem('tkpi_dashboard', JSON.stringify(data));
+  renderDashboard();
+}
+
+function resetDashboard() {
+  sessionStorage.removeItem('tkpi_dashboard');
+  renderDashboard();
+}
+
+function formatDelta(current, prev, unit, inverted) {
+  if (prev === null || prev === undefined) return '';
+  const delta = current - prev;
+  if (delta === 0) return '<span style="color:var(--text-muted)">\u2192 0</span>';
+  const improved = inverted ? delta < 0 : delta > 0;
+  const arrow = improved ? '\u25B2' : '\u25BC';
+  const color = improved ? 'var(--accent-green)' : 'var(--accent-red)';
+  let formatted;
+  if (unit === '%' || unit === '\u2030') formatted = Math.abs(delta).toFixed(1) + ' Pp.';
+  else if (unit === 'EUR') formatted = Math.round(Math.abs(delta)).toLocaleString('de-DE') + ' \u20AC';
+  else if (unit === 'Faktor') formatted = Math.abs(delta).toFixed(2);
+  else if (unit === 'Punkte (0-5)') formatted = Math.abs(delta).toFixed(1);
+  else formatted = Math.abs(delta).toFixed(1);
+  return `<span style="color:${color}">${arrow} ${formatted}</span>`;
+}
+
+function renderDashboard() {
+  const data = getDashboardData();
+  const entries = Object.values(data);
+  const t = translations[currentLanguage];
+
+  // Home preview
+  const homeContainer = document.getElementById('dashboardContainer');
+  if (homeContainer) {
+    if (entries.length === 0) {
+      homeContainer.innerHTML = `<div class="dash-empty">${currentLanguage === 'de' ? 'Noch keine KPIs berechnet. Nutzen Sie den KPI Kalkulator.' : 'No KPIs calculated yet. Use the KPI Calculator.'}</div>`;
+    } else {
+      homeContainer.innerHTML = entries.slice(0, 6).map(e => renderDashTile(e, t)).join('');
+    }
+  }
+
+  // Dashboard page
+  const pageContainer = document.getElementById('dashboardPageContainer');
+  const summaryGrid = document.getElementById('summaryGrid');
+  if (pageContainer) {
+    if (entries.length === 0) {
+      if (summaryGrid) summaryGrid.innerHTML = '';
+      pageContainer.innerHTML = `<div class="dash-empty">${currentLanguage === 'de' ? 'Noch keine KPIs berechnet. Nutzen Sie den KPI Kalkulator.' : 'No KPIs calculated yet. Use the KPI Calculator.'}</div>`;
+    } else {
+      const counts = { total: entries.length, green: 0, yellow: 0, red: 0 };
+      entries.forEach(e => counts[e.status]++);
+      if (summaryGrid) {
+        summaryGrid.innerHTML = `
+          <div class="summary-card"><div class="num" style="color:var(--text-primary)">${counts.total}</div><div class="lbl">${t.dash_total}</div></div>
+          <div class="summary-card"><div class="num" style="color:var(--accent-green)">${counts.green}</div><div class="lbl">${t.dash_green}</div></div>
+          <div class="summary-card"><div class="num" style="color:var(--accent-yellow)">${counts.yellow}</div><div class="lbl">${t.dash_yellow}</div></div>
+          <div class="summary-card"><div class="num" style="color:var(--accent-red)">${counts.red}</div><div class="lbl">${t.dash_red}</div></div>
+        `;
+      }
+      pageContainer.innerHTML = entries.map(e => renderDashTile(e, t)).join('');
+    }
+  }
+}
+
+function renderDashTile(e, t) {
+  const statusColors = { green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', red: 'var(--accent-red)' };
+  const badgeLabels = { green: t.badge_green, yellow: t.badge_yellow, red: t.badge_red };
+  const delta = formatDelta(e.value, e.prevValue, e.unit, e.invertedScale);
+  const prevText = e.prevValue !== null ? `${t.dash_prev}: ${formatValue(e.prevValue, e.unit)}` : t.dash_first;
+  const ts = new Date(e.timestamp).toLocaleString(currentLanguage === 'de' ? 'de-DE' : 'en-US');
+  // Use language-dependent name and measures (with fallback for old data)
+  const tileName = currentLanguage === 'en' ? (e.name_en || e.name) : (e.name_de || e.name);
+  const tileMeasures = currentLanguage === 'en' ? (e.measures_en || e.measures_de || e.measures) : (e.measures_de || e.measures);
+  const measuresHtml = tileMeasures ? `<div class="measures-box ${e.status}" style="margin-top:10px"><ul>${tileMeasures.map(m=>`<li>${m}</li>`).join('')}</ul></div>` : '';
+  return `
+    <div class="dash-tile" onclick="this.querySelector('.dash-tile-measures').classList.toggle('open')">
+      <div class="dash-tile-cat">${e.id.toUpperCase()}</div>
+      <div class="dash-tile-name">${tileName}</div>
+      <div class="dash-tile-value" style="color:${statusColors[e.status]}">${formatValue(e.value, e.unit)}</div>
+      <div class="dash-tile-delta">${delta}</div>
+      <div class="dash-tile-prev">${prevText}</div>
+      <div class="dash-tile-time">${ts}</div>
+      <span class="result-badge badge-${e.status}" style="margin-top:8px;display:inline-flex">${badgeLabels[e.status]}</span>
+      <div class="dash-tile-measures">${measuresHtml}</div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
